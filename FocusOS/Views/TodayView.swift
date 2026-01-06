@@ -3,7 +3,10 @@ import SwiftUI
 struct TodayView: View {
     let weekDays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
     
-    // Real Date Logic
+    @Binding var activeTab: Tab
+    @EnvironmentObject var viewModel: SessionViewModel
+    
+    // Real Data Logic
     private var calendar: Calendar { Calendar.current }
     private var today: Date { Date() }
     
@@ -24,15 +27,55 @@ struct TodayView: View {
         return calendar.component(.weekday, from: firstOfMonth) - 1
     }
     
-    // Mock Data generator
+    // Data Helpers
+    func getSessions(for day: Int) -> [StudySession] {
+        let selectedDateComponents = DateComponents(year: calendar.component(.year, from: today),
+                                                    month: calendar.component(.month, from: today),
+                                                    day: day)
+        
+        let dayDate = calendar.date(from: selectedDateComponents) ?? Date.distantPast
+        
+        // Filter past sessions
+        var sessions = viewModel.pastSessions.filter { session in
+            calendar.isDate(session.startTime, inSameDayAs: dayDate)
+        }
+        
+        // Add current session if applicable
+        if let current = viewModel.currentSession,
+           calendar.isDate(current.startTime, inSameDayAs: dayDate) {
+            sessions.append(current)
+        }
+        
+        return sessions
+    }
+
+    var distractionInfoForSelectedDay: (distractions: Int, sessions: Int) {
+        let sessions = getSessions(for: selectedDay)
+        let distractionCount = sessions.reduce(0) { $0 + $1.distractions.count }
+        return (distractionCount, sessions.count)
+    }
+    
+    // Real Stats generator
     func getStats(for day: Int) -> (time: String, sessions: String, score: String) {
         if day > currentDay { return ("-", "-", "-") }
-        if day == 4 || day == 10 { return ("0h 00m", "0", "-") } // Random rest days
         
-        // Random-ish data based on day
-        let h = (day * 3) % 5
-        let m = (day * 10) % 60
-        return ("\(h)h \(m)m", "\(h+1)", "\(80 + (day % 15))%")
+        let sessions = getSessions(for: day)
+        
+        if sessions.isEmpty {
+            return ("0h 00m", "0", "-")
+        }
+        
+        // Calculate total duration
+        let totalDuration = sessions.reduce(0) { $0 + $1.duration }
+        let hours = Int(totalDuration) / 3600
+        let minutes = Int(totalDuration) / 60 % 60
+        let timeString = String(format: "%dh %02dm", hours, minutes)
+        
+        // Average Score
+        let totalScore = sessions.reduce(0) { $0 + $1.focusScore }
+        let averageScore = Int(totalScore / Double(sessions.count))
+        
+        return (timeString, "\(sessions.count)", "\(averageScore)%")
     }
     
     var body: some View {
@@ -113,6 +156,65 @@ struct TodayView: View {
                 .background(Color(UIColor.secondarySystemBackground))
                 .cornerRadius(15)
                 .padding(.horizontal)
+                
+                // Distraction Indicator
+                VStack(spacing: 8) {
+                    let info = distractionInfoForSelectedDay
+                    
+                    HStack(spacing: 8) {
+                        if info.sessions > 0 && info.distractions == 0 {
+                            // Perfect Day
+                             Circle()
+                                 .fill(Color.blue)
+                                 .frame(width: 8, height: 8)
+                        } else {
+                            // Mixed or Empty
+                            let count = info.distractions
+                            let maxDots = 8
+                            // If no sessions, show empty slots layout. If sessions exist but with distractions, show distractions.
+                            // User request: "limit visible dots to a maximum of 6–8"
+                            // If count is 0 (and sessions=0), displayCount is 0.
+                            
+                            let displayCount = min(count, maxDots)
+                            
+                            ForEach(0..<maxDots, id: \.self) { index in
+                                if index < displayCount {
+                                    Circle()
+                                        .fill(Color.orange.opacity(0.7))
+                                        .frame(width: 8, height: 8)
+                                } else {
+                                    Circle()
+                                        .fill(Color.gray.opacity(0.3))
+                                        .frame(width: 8, height: 8)
+                                }
+                            }
+                            
+                            if count > maxDots {
+                                Text("+\(count - maxDots)")
+                                    .font(.caption2)
+                                    .foregroundColor(.orange)
+                            }
+                        }
+                    }
+                    
+                    if info.sessions > 0 && info.distractions == 0 {
+                         Text("Perfect focus today!")
+                            .font(.caption)
+                            .foregroundColor(.blue)
+                    } else if info.sessions == 0 {
+                        Text("No sessions recorded")
+                            .font(.caption)
+                            .foregroundColor(.gray)
+                    } else {
+                        Text("Distractions logged today")
+                            .font(.caption)
+                            .foregroundColor(.gray)
+                    }
+                }
+                .padding(.top, 5)
+                .onTapGesture {
+                    activeTab = .habits
+                }
                 
                 // Summary Cards
                 let stats = getStats(for: selectedDay)

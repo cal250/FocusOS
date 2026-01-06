@@ -17,7 +17,7 @@ enum Tab: String, CaseIterable {
 }
 
 struct MainTabView: View {
-    @State private var selectedTab: Tab = .focus
+    @State private var selectedTab: Tab = .today
     
     // Hide default tab bar
     init() {
@@ -28,7 +28,7 @@ struct MainTabView: View {
         ZStack(alignment: .bottom) {
             // Main Content
             TabView(selection: $selectedTab) {
-                TodayView()
+                TodayView(activeTab: $selectedTab)
                     .tag(Tab.today)
                 
                 HabitsView()
