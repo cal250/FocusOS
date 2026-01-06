@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct HomeView: View {
-    @StateObject private var viewModel = SessionViewModel()
+    @EnvironmentObject var viewModel: SessionViewModel
     @State private var showingLogger = false
     @State private var rotation: Double = 0
     

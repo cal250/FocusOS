@@ -2,12 +2,27 @@ import SwiftUI
 
 struct TodayView: View {
     let weekDays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
-    // Mocking current month state
-    let distinctMonthDays = 30
-    let currentDay = 15 // Today is the 15th
     
-    @State private var selectedDay = 15
+    // Real Date Logic
+    private var calendar: Calendar { Calendar.current }
+    private var today: Date { Date() }
+    
+    @State private var selectedDay: Int = Calendar.current.component(.day, from: Date())
     @Namespace private var animationNamespace
+    
+    private var currentDay: Int {
+        calendar.component(.day, from: today)
+    }
+    
+    private var daysInMonth: Int {
+        calendar.range(of: .day, in: .month, for: today)?.count ?? 30
+    }
+    
+    private var startOffset: Int {
+        let components = calendar.dateComponents([.year, .month], from: today)
+        guard let firstOfMonth = calendar.date(from: components) else { return 0 }
+        return calendar.component(.weekday, from: firstOfMonth) - 1
+    }
     
     // Mock Data generator
     func getStats(for day: Int) -> (time: String, sessions: String, score: String) {
@@ -56,10 +71,10 @@ struct TodayView: View {
                     
                     // Days Grid
                     LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 7), spacing: 15) {
-                        // Offset for start of month (mocking starts on Tue for example)
-                        ForEach(0..<2) { _ in Spacer() }
+                        // Offset for start of month
+                        ForEach(0..<startOffset, id: \.self) { _ in Spacer() }
                         
-                        ForEach(1...distinctMonthDays, id: \.self) { day in
+                        ForEach(1...daysInMonth, id: \.self) { day in
                             let isFuture = day > currentDay
                             let isToday = day == currentDay
                             let isSelected = selectedDay == day
