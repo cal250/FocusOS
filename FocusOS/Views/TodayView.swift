@@ -12,6 +12,7 @@ struct TodayView: View {
     
     @State private var selectedDay: Int = Calendar.current.component(.day, from: Date())
     @Namespace private var animationNamespace
+    @State private var showingHistory = false
     
     private var currentDay: Int {
         calendar.component(.day, from: today)
@@ -79,7 +80,8 @@ struct TodayView: View {
     }
     
     var body: some View {
-        ScrollView {
+        NavigationView {
+            ScrollView {
             VStack(spacing: 25) {
                 // Header
                 HStack {
@@ -227,12 +229,15 @@ struct TodayView: View {
                         color: .blue
                     )
                     
-                    SummaryCard(
-                        title: "Sessions",
-                        value: stats.sessions,
-                        icon: "checkmark.circle.fill",
-                        color: .green
-                    )
+                    NavigationLink(destination: SessionHistoryView()) {
+                        SummaryCard(
+                            title: "Sessions",
+                            value: stats.sessions,
+                            icon: "checkmark.circle.fill",
+                            color: .green
+                        )
+                    }
+                    .buttonStyle(PlainButtonStyle())
                 }
                 .padding(.horizontal)
                 
@@ -247,7 +252,10 @@ struct TodayView: View {
                 Spacer()
             }
             .padding(.bottom, 100)
+            }
+            .navigationBarHidden(true)
         }
+        .navigationViewStyle(StackNavigationViewStyle())
     }
 }
 

@@ -54,9 +54,10 @@ struct SplashScreenView: View {
                     }
                     
                     // Main Logo (Book Icon revealed)
-                    Image(systemName: "book.fill") 
-                        .font(.system(size: 80))
-                        .foregroundColor(.white)
+                    Image("g8")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 120, height: 120)
                         .scaleEffect(logoScale)
                         .opacity(logoOpacity)
                 }

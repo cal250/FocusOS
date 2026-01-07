@@ -3,6 +3,7 @@ import SwiftUI
 struct HomeView: View {
     @EnvironmentObject var viewModel: SessionViewModel
     @State private var showingLogger = false
+    @State private var showingIntentionSheet = false
     @State private var rotation: Double = 0
     
     // Gradient definitions to match the "Focus Period" aesthetic
@@ -134,7 +135,7 @@ struct HomeView: View {
                 } else {
                     // Start Button
                     Button(action: {
-                        viewModel.startSession()
+                        showingIntentionSheet = true
                     }) {
                         ZStack {
                             Circle()
@@ -173,6 +174,24 @@ struct HomeView: View {
         .sheet(isPresented: $showingLogger) {
             DistractionLoggerView(viewModel: viewModel)
         }
+        .sheet(isPresented: $showingIntentionSheet) {
+            SessionIntentionView(
+                onStart: { tag, duration in
+                    showingIntentionSheet = false
+                    viewModel.startSession(tag: tag, duration: duration)
+                },
+                onCancel: {
+                    showingIntentionSheet = false
+                }
+            )
+        }
+        .alert(isPresented: $viewModel.showCongratulationAlert) {
+            Alert(
+                title: Text("Session Complete"),
+                message: Text("Congratulations! You stayed focused."),
+                dismissButton: .default(Text("Awesome"))
+            )
+        }
     }
     
     var innerStatusText: String {
@@ -184,6 +203,11 @@ struct HomeView: View {
     }
     
     func startAnimation() {
+        // If Open Ended: Rotate
+        // If Duration Set: The TickRing handles progress via trim/mask if we pass it, 
+        // but current implementation rotates the whole ring.
+        // For simplicity/consistency with codebase, let's just keep rotating for now 
+        // OR distinct logic. Let's keep rotating for "Active" state as it feels alive.
         withAnimation(Animation.linear(duration: 4.0).repeatForever(autoreverses: false)) {
             rotation = 360
         }
@@ -191,11 +215,7 @@ struct HomeView: View {
     
     func stopAnimation() {
         withAnimation(.default) {
-            // We can't easily 'pause' an animation in SwiftUI 1.0 style easily without resetting
-            // But for this simple app, resetting rotation on stop is fine, or keeping it static.
-            // A simple trick to 'stop' is just to not update, but reversing a repeatForever is tricky.
-            // We'll just let it complete or reset.
-            rotation = 0 // Resets to 0. 
+            rotation = 0 
         }
     }
 }
