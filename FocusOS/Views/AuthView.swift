@@ -9,6 +9,7 @@ struct AuthView: View {
     @State private var password = ""
     @State private var agreeToTerms = false
     @State private var rememberMe = false
+    @State private var isAppeared = false
     
     var body: some View {
         ZStack {
@@ -22,7 +23,7 @@ struct AuthView: View {
             VStack(spacing: 0) {
                 // Top spacer to show background
                 Spacer()
-                    .frame(height: 140)
+                    .frame(height: 100)
                 
                 VStack(spacing: 25) {
                     // Header
@@ -155,7 +156,7 @@ struct AuthView: View {
                                 .foregroundColor(.secondary)
                             
                             HStack(spacing: 30) {
-                                SocialButton(icon: "g.circle.fill", color: .red)
+                                SocialButton(imagePath: "/Users/calvin/.gemini/antigravity/brain/d9e6cae9-a606-4f26-839f-153919a23c87/google_logo_1767811237808.png")
                                 SocialButton(icon: "apple.logo", color: .black)
                                 SocialButton(icon: "f.circle.fill", color: .blue)
                             }
@@ -164,19 +165,25 @@ struct AuthView: View {
                     
                     Spacer()
                 }
-                .padding(.horizontal, 30)
+                .padding(.horizontal, 40)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .background(Color.white)
                 .clipShape(
                     UnevenRoundedRectangle(
-                        topLeadingRadius: 120,
+                        topLeadingRadius: 100,
                         bottomLeadingRadius: 0,
                         bottomTrailingRadius: 0,
-                        topTrailingRadius: 120
+                        topTrailingRadius: 100
                     )
                 )
-                .shadow(color: Color.black.opacity(0.1), radius: 20, x: 0, y: -5)
+                .shadow(color: Color.black.opacity(0.08), radius: 12, x: 0, y: -5)
                 .ignoresSafeArea(edges: .bottom)
+                .offset(y: isAppeared ? 0 : UIScreen.main.bounds.height)
+            }
+        }
+        .onAppear {
+            withAnimation(.spring(response: 0.6, dampingFraction: 0.8, blendDuration: 0)) {
+                isAppeared = true
             }
         }
     }
@@ -192,52 +199,64 @@ struct CustomTextField: View {
     var isSecure: Bool = false
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        ZStack(alignment: .leading) {
+            // Label on the border
             Text(label)
-                .font(.subheadline)
-                .fontWeight(.medium)
-                .foregroundColor(.primary)
-                .padding(.leading, 4)
+                .font(.system(size: 12, weight: .regular, design: .rounded))
+                .foregroundColor(.black)
+                .padding(.horizontal, 4)
+                .background(Color.white)
+                .offset(x: 20, y: -27)
+                .zIndex(1)
             
             if isSecure {
                 SecureField(placeholder, text: $text)
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 14)
-                    .background(Color.white)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 16)
-                            .stroke(Color.gray.opacity(0.25), lineWidth: 1)
+                    .font(.system(size: 15))
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 16)
+                    .background(
+                        RoundedRectangle(cornerRadius: 20)
+                            .stroke(Color.gray.opacity(0.25), lineWidth: 1.2)
                     )
-                    .cornerRadius(16)
             } else {
                 TextField(placeholder, text: $text)
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 14)
-                    .background(Color.white)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 16)
-                            .stroke(Color.gray.opacity(0.25), lineWidth: 1)
+                    .font(.system(size: 15))
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 16)
+                    .background(
+                        RoundedRectangle(cornerRadius: 20)
+                            .stroke(Color.gray.opacity(0.25), lineWidth: 1.2)
                     )
-                    .cornerRadius(16)
             }
         }
+        .padding(.top, 10)
     }
 }
 
 // MARK: - Social Button
 
 struct SocialButton: View {
-    let icon: String
-    let color: Color
+    var icon: String? = nil
+    var imagePath: String? = nil
+    var color: Color = .black
     
     var body: some View {
         Button(action: {
             // Social auth action (mock)
         }) {
-            Image(systemName: icon)
-                .font(.system(size: 28))
-                .foregroundColor(color)
-                .frame(width: 50, height: 50)
+            Group {
+                if let imagePath = imagePath, let uiImage = UIImage(contentsOfFile: imagePath) {
+                    Image(uiImage: uiImage)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 32, height: 32)
+                } else if let icon = icon {
+                    Image(systemName: icon)
+                        .font(.system(size: 28))
+                        .foregroundColor(color)
+                }
+            }
+            .frame(width: 50, height: 50)
         }
     }
 }
