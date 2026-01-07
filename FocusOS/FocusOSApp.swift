@@ -2,6 +2,7 @@ import SwiftUI
 
 enum AppPhase {
     case splash
+    case auth
     case onboarding
     case main
 }
@@ -18,9 +19,16 @@ struct FocusOSApp: App {
                 case .splash:
                     SplashScreenView {
                         withAnimation {
+                            appPhase = .auth
+                        }
+                    }
+                case .auth:
+                    AuthView {
+                        withAnimation {
                             appPhase = .onboarding
                         }
                     }
+                    .transition(.opacity)
                 case .onboarding:
                     OnboardingView {
                         withAnimation {

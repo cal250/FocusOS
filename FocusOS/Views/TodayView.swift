@@ -94,9 +94,12 @@ struct TodayView: View {
                             .fontWeight(.bold)
                     }
                     Spacer()
-                    Image(systemName: "person.crop.circle")
-                        .font(.title)
-                        .foregroundColor(.gray)
+                    
+                    NavigationLink(destination: AccountView()) {
+                        Image(systemName: "person.crop.circle")
+                            .font(.title)
+                            .foregroundColor(.gray)
+                    }
                 }
                 .padding(.horizontal)
                 .padding(.top, 20)
