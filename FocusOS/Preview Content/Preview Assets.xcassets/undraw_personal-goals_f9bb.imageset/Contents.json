@@ -1,11 +1,11 @@
 {
   "images" : [
     {
-      "filename" : "undraw_personal-goals_f9bb.svg",
       "idiom" : "universal",
       "scale" : "1x"
     },
     {
+      "filename" : "undraw_personal-goals_f9bb.png",
       "idiom" : "universal",
       "scale" : "2x"
     },
@@ -14,11 +14,11 @@
       "scale" : "3x"
     },
     {
-      "filename" : "undraw_personal-goals_f9bb (1).svg",
       "idiom" : "iphone",
       "scale" : "1x"
     },
     {
+      "filename" : "undraw_personal-goals_f9bb 1.png",
       "idiom" : "iphone",
       "scale" : "2x"
     },
