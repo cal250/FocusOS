@@ -61,6 +61,18 @@ class SupabaseManager: ObservableObject {
     }
     
     @MainActor
+    func updateProfile(fullName: String) async throws {
+        print("SupabaseManager: Updating profile metadata...")
+        let response = try await client.auth.update(
+            user: UserAttributes(
+                data: ["full_name": .string(fullName)]
+            )
+        )
+        self.currentUser = response
+        print("SupabaseManager: Profile update successful")
+    }
+    
+    @MainActor
     func signOut() async throws {
         print("SupabaseManager: Signing out...")
         try await client.auth.signOut()

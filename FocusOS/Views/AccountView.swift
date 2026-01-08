@@ -64,6 +64,22 @@ struct AccountView: View {
                     }
                     
                     Button(action: {
+                        if isEditingProfile {
+                            // Saving changes
+                            Task {
+                                do {
+                                    try await supabaseManager.updateProfile(fullName: userName)
+                                } catch {
+                                    print("AccountView: Failed to update profile - \(error.localizedDescription)")
+                                }
+                            }
+                        } else {
+                            // Starting edit - initialize with current name
+                            if let currentName = supabaseManager.currentUser?.userMetadata["full_name"]?.value as? String {
+                                userName = currentName
+                            }
+                        }
+                        
                         withAnimation {
                             isEditingProfile.toggle()
                         }
@@ -242,6 +258,12 @@ struct AccountView: View {
                 print("Exported to: \(url)")
             case .failure(let error):
                 print("Export failed: \(error)")
+            }
+        }
+        .onAppear {
+            // Sync local name with database on load
+            if let currentName = supabaseManager.currentUser?.userMetadata["full_name"]?.value as? String {
+                userName = currentName
             }
         }
     }
