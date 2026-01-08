@@ -14,25 +14,44 @@ class SupabaseManager: ObservableObject {
     @Published var session: Session?
     
     private init() {
-        self.client = SupabaseClient(supabaseURL: supabaseURL, supabaseKey: supabaseAnonKey)
+        let options = SupabaseClientOptions(
+            auth: .init(emitLocalSessionAsInitialSession: true)
+        )
+        self.client = SupabaseClient(
+            supabaseURL: supabaseURL,
+            supabaseKey: supabaseAnonKey,
+            options: options
+        )
         
         Task {
             await checkSession()
             
             for await (_, sessionUpdate) in client.auth.authStateChanges {
                 await MainActor.run {
-                    self.session = sessionUpdate
-                    self.currentUser = sessionUpdate?.user
+                    self.updateAuthState(sessionUpdate)
                 }
             }
         }
     }
     
     @MainActor
+    private func updateAuthState(_ session: Session?) {
+        if let session = session, !session.isExpired {
+            self.session = session
+            self.currentUser = session.user
+        } else {
+            if self.session != nil || self.currentUser != nil {
+                print("SupabaseManager: Cleaned up expired or null session")
+            }
+            self.session = nil
+            self.currentUser = nil
+        }
+    }
+    
+    @MainActor
     func checkSession() async {
         let session = try? await client.auth.session
-        self.session = session
-        self.currentUser = session?.user
+        self.updateAuthState(session)
     }
     
     @MainActor
