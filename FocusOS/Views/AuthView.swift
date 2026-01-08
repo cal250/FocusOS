@@ -139,7 +139,6 @@ struct AuthView: View {
                     Button(action: {
                         Task {
                             isLoading = true
-                            
                             // Sanitize inputs
                             let cleanEmail = email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
                             let cleanPassword = password.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -183,7 +182,7 @@ struct AuthView: View {
                     .cornerRadius(12)
                     .disabled(isLoading || (isSignUp && !agreeToTerms))
                     .opacity((isLoading || (isSignUp && !agreeToTerms)) ? 0.6 : 1.0)
-                    .alert("Authentication Error", isPresented: $showError) {
+                    .alert("Authentication Issue", isPresented: $showError) {
                         Button("OK", role: .cancel) { }
                     } message: {
                         Text(errorMessage)

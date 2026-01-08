@@ -3,10 +3,13 @@ import UniformTypeIdentifiers
 
 struct AccountView: View {
     @EnvironmentObject var viewModel: SessionViewModel
+    @EnvironmentObject var habitsViewModel: HabitsViewModel
     @AppStorage("userName") private var userName = "Focus User"
     @AppStorage("userEmail") private var userEmail = "user@focusos.app"
     @State private var isEditingProfile = false
     @State private var showingClearDataAlert = false
+    @State private var showingSignOutAlert = false
+    @State private var showingDeleteAccountAlert = false
     @State private var showingExportSheet = false
     @State private var exportDocument: ExportDocument?
     @ObservedObject private var supabaseManager = SupabaseManager.shared
@@ -142,22 +145,14 @@ struct AccountView: View {
                             label: "Delete Account",
                             color: .gray
                         ) {
-                            // Delete account placeholder
+                            showingDeleteAccountAlert = true
                         }
                         
                         Divider()
                             .padding(.vertical, 8)
                         
                         Button(action: {
-                            print("AccountView: Sign Out pressed")
-                            Task {
-                                do {
-                                    try await supabaseManager.signOut()
-                                    print("AccountView: Sign Out successful")
-                                } catch {
-                                    print("AccountView: Sign Out failed - \(error.localizedDescription)")
-                                }
-                            }
+                            showingSignOutAlert = true
                         }) {
                             HStack(spacing: 16) {
                                 Image(systemName: "rectangle.portrait.and.arrow.right")
@@ -189,10 +184,52 @@ struct AccountView: View {
         .alert("Clear All Data", isPresented: $showingClearDataAlert) {
             Button("Cancel", role: .cancel) { }
             Button("Clear", role: .destructive) {
-                viewModel.pastSessions.removeAll()
+                Task {
+                    do {
+                        try await SupabaseManager.shared.clearAllUserData()
+                        await MainActor.run {
+                            viewModel.pastSessions.removeAll()
+                            habitsViewModel.habits.removeAll()
+                        }
+                    } catch {
+                        print("AccountView: Failed to clear data - \(error.localizedDescription)")
+                    }
+                }
             }
         } message: {
             Text("This will permanently delete all your session history. This action cannot be undone.")
+        }
+        .alert("Sign Out", isPresented: $showingSignOutAlert) {
+            Button("Cancel", role: .cancel) { }
+            Button("Sign Out", role: .destructive) {
+                print("AccountView: Signing out...")
+                Task {
+                    do {
+                        try await supabaseManager.signOut()
+                        print("AccountView: Sign Out successful")
+                    } catch {
+                        print("AccountView: Sign Out failed - \(error.localizedDescription)")
+                    }
+                }
+            }
+        } message: {
+            Text("Are you sure you want to sign out?")
+        }
+        .alert("Delete Account", isPresented: $showingDeleteAccountAlert) {
+            Button("Cancel", role: .cancel) { }
+            Button("Delete", role: .destructive) {
+                print("AccountView: Deleting account...")
+                Task {
+                    do {
+                        try await supabaseManager.deleteAccount()
+                        print("AccountView: Account deleted successful")
+                    } catch {
+                        print("AccountView: Account deletion failed - \(error.localizedDescription)")
+                    }
+                }
+            }
+        } message: {
+            Text("This action is permanent and will delete all your data, sessions, and habits. You cannot undo this.")
         }
         .fileExporter(
             isPresented: $showingExportSheet,
@@ -542,6 +579,7 @@ struct AccountView_Previews: PreviewProvider {
         NavigationView {
             AccountView()
                 .environmentObject(SessionViewModel())
+                .environmentObject(HabitsViewModel())
         }
     }
 }

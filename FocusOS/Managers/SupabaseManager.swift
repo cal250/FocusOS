@@ -69,6 +69,31 @@ class SupabaseManager: ObservableObject {
         print("SupabaseManager: Sign out cleanup complete")
     }
     
+    @MainActor
+    func deleteAccount() async throws {
+        guard let userId = currentUser?.id else {
+            print("SupabaseManager: No user for deleteAccount")
+            return
+        }
+        
+        print("SupabaseManager: Deleting account for \(userId)...")
+        
+        do {
+            // We call a Postgres function 'delete_user' which must be created in Supabase
+            // with SECURITY DEFINER to allow the user to delete their own auth record.
+            try await client.rpc("delete_user").execute()
+            
+            // Clean up local state
+            self.session = nil
+            self.currentUser = nil
+            print("SupabaseManager: Account deletion successful")
+        } catch {
+            print("SupabaseManager: DELETE ACCOUNT ERROR: \(error.localizedDescription)")
+            print("SupabaseManager Details: \(error)")
+            throw error
+        }
+    }
+    
     // MARK: - Daily Stats
     
     func fetchDailyStats(for date: Date) async throws -> DailyStat? {
@@ -157,6 +182,94 @@ class SupabaseManager: ObservableObject {
             print("SupabaseManager: Session save successful for \(session.id)")
         } catch {
             print("SupabaseManager: SAVE SESSION ERROR: \(error.localizedDescription)")
+            print("SupabaseManager Details: \(error)")
+            throw error
+        }
+    }
+    
+    // MARK: - Habits
+    
+    func fetchHabits() async throws -> [Habit] {
+        guard let userId = currentUser?.id else {
+            print("SupabaseManager: No user for fetchHabits")
+            return []
+        }
+        
+        print("SupabaseManager: Fetching habits for user \(userId)...")
+        
+        do {
+            let habits: [Habit] = try await client
+                .from("habits")
+                .select()
+                .eq("user_id", value: userId)
+                .order("created_at", ascending: true)
+                .execute()
+                .value
+            
+            print("SupabaseManager: Fetch successful, found \(habits.count) habits")
+            return habits
+        } catch {
+            print("SupabaseManager: FETCH HABITS ERROR: \(error.localizedDescription)")
+            print("SupabaseManager Details: \(error)")
+            throw error
+        }
+    }
+    
+    func saveHabit(_ habit: Habit) async throws {
+        print("SupabaseManager: Saving habit \(habit.name)...")
+        
+        var habitToSave = habit
+        if habitToSave.userId == nil {
+            habitToSave.userId = currentUser?.id
+        }
+        
+        do {
+            try await client
+                .from("habits")
+                .upsert(habitToSave)
+                .execute()
+            print("SupabaseManager: Habit save successful")
+        } catch {
+            print("SupabaseManager: SAVE HABIT ERROR: \(error.localizedDescription)")
+            print("SupabaseManager Details: \(error)")
+            throw error
+        }
+    }
+    
+    func deleteHabit(_ habitId: UUID) async throws {
+        print("SupabaseManager: Deleting habit \(habitId)...")
+        
+        do {
+            try await client
+                .from("habits")
+                .delete()
+                .eq("id", value: habitId)
+                .execute()
+            print("SupabaseManager: Habit deletion successful")
+        } catch {
+            print("SupabaseManager: DELETE HABIT ERROR: \(error.localizedDescription)")
+            print("SupabaseManager Details: \(error)")
+            throw error
+        }
+    }
+    
+    func clearAllUserData() async throws {
+        guard let userId = currentUser?.id else {
+            print("SupabaseManager: No user for clearAllUserData")
+            return
+        }
+        
+        print("SupabaseManager: Clearing all data for user \(userId)...")
+        
+        do {
+            // Delete from all tables
+            try await client.from("sessions").delete().eq("user_id", value: userId).execute()
+            try await client.from("habits").delete().eq("user_id", value: userId).execute()
+            try await client.from("daily_stats").delete().eq("user_id", value: userId).execute()
+            
+            print("SupabaseManager: All user data cleared successfully")
+        } catch {
+            print("SupabaseManager: CLEAR ALL DATA ERROR: \(error.localizedDescription)")
             print("SupabaseManager Details: \(error)")
             throw error
         }

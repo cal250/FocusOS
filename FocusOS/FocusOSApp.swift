@@ -10,6 +10,7 @@ enum AppPhase {
 @main
 struct FocusOSApp: App {
     @StateObject private var sessionViewModel = SessionViewModel()
+    @StateObject private var habitsViewModel = HabitsViewModel()
     @StateObject private var supabaseManager = SupabaseManager.shared
     @State private var appPhase: AppPhase = .splash
     
@@ -48,6 +49,7 @@ struct FocusOSApp: App {
                 case .main:
                     MainTabView()
                         .environmentObject(sessionViewModel)
+                        .environmentObject(habitsViewModel)
                         .transition(.opacity)
                 }
             }
