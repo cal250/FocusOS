@@ -9,6 +9,7 @@ struct AccountView: View {
     @State private var showingClearDataAlert = false
     @State private var showingExportSheet = false
     @State private var exportDocument: ExportDocument?
+    @ObservedObject private var supabaseManager = SupabaseManager.shared
     
     var body: some View {
         ScrollView {
@@ -49,11 +50,11 @@ struct AccountView: View {
                                 .textFieldStyle(RoundedBorderTextFieldStyle())
                                 .padding(.horizontal, 40)
                         } else {
-                            Text(userName)
+                            Text(supabaseManager.currentUser?.userMetadata["full_name"]?.value as? String ?? userName)
                                 .font(.title2)
                                 .fontWeight(.bold)
                             
-                            Text(userEmail)
+                            Text(supabaseManager.currentUser?.email ?? userEmail)
                                 .font(.subheadline)
                                 .foregroundColor(.secondary)
                         }
@@ -142,6 +143,38 @@ struct AccountView: View {
                             color: .gray
                         ) {
                             // Delete account placeholder
+                        }
+                        
+                        Divider()
+                            .padding(.vertical, 8)
+                        
+                        Button(action: {
+                            print("AccountView: Sign Out pressed")
+                            Task {
+                                do {
+                                    try await supabaseManager.signOut()
+                                    print("AccountView: Sign Out successful")
+                                } catch {
+                                    print("AccountView: Sign Out failed - \(error.localizedDescription)")
+                                }
+                            }
+                        }) {
+                            HStack(spacing: 16) {
+                                Image(systemName: "rectangle.portrait.and.arrow.right")
+                                    .font(.system(size: 18))
+                                    .foregroundColor(.red)
+                                    .frame(width: 24)
+                                
+                                Text("Sign Out")
+                                    .font(.body)
+                                    .fontWeight(.medium)
+                                    .foregroundColor(.red)
+                                
+                                Spacer()
+                            }
+                            .padding()
+                            .background(Color.red.opacity(0.1))
+                            .cornerRadius(12)
                         }
                     }
                     .padding(.horizontal)
@@ -402,7 +435,8 @@ struct AccountView: View {
     // MARK: - Computed Properties
     
     var userInitials: String {
-        let components = userName.components(separatedBy: " ")
+        let nameToUse = supabaseManager.currentUser?.userMetadata["full_name"]?.value as? String ?? userName
+        let components = nameToUse.components(separatedBy: " ")
         let initials = components.compactMap { $0.first }.prefix(2)
         return String(initials).uppercased()
     }

@@ -13,8 +13,33 @@ class SessionViewModel: ObservableObject {
     @Published var showCongratulationAlert: Bool = false
     @Published var sessionCompleted: Bool = false // Tracks if the set time was reached
     
+    private var cancellables = Set<AnyCancellable>()
+    
     init() {
         requestNotificationPermissions()
+        loadInitialData()
+        
+        // Reload data when user changes
+        SupabaseManager.shared.$currentUser
+            .dropFirst()
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in
+                self?.loadInitialData()
+            }
+            .store(in: &cancellables)
+    }
+    
+    func loadInitialData() {
+        Task {
+            do {
+                let sessions = try await SupabaseManager.shared.fetchSessions()
+                await MainActor.run {
+                    self.pastSessions = sessions
+                }
+            } catch {
+                print("SessionViewModel: Failed to load initial sessions - \(error.localizedDescription)")
+            }
+        }
     }
     
     var progress: Double {
@@ -104,6 +129,9 @@ class SessionViewModel: ObservableObject {
         session.focusScore = InsightEngine.calculateFocusScore(duration: session.duration, distractionCount: session.distractions.count)
         
         pastSessions.append(session)
+        syncSession(session)
+        syncDailyStats(with: session)
+        
         currentSession = nil
         isSessionActive = false
         isPaused = false
@@ -115,6 +143,63 @@ class SessionViewModel: ObservableObject {
         // Show congrats if we stopped manually (and haven't already shown it for completion)
         // Or essentially always show it on stop as "Congratulions and encouragement" requested.
         showCongratulationAlert = true
+    }
+    
+    private func syncSession(_ session: StudySession) {
+        Task {
+            do {
+                try await SupabaseManager.shared.saveSession(session)
+                print("SessionViewModel: Successfully synced individual session \(session.id)")
+            } catch {
+                print("SessionViewModel: Failed to sync individual session - \(error.localizedDescription)")
+            }
+        }
+    }
+    
+    private func syncDailyStats(with session: StudySession) {
+        Task {
+            do {
+                let manager = SupabaseManager.shared
+                guard let userId = manager.currentUser?.id else {
+                    print("SessionViewModel: No user logged in, skipping stats sync")
+                    return
+                }
+                
+                // 1. Fetch current stats for today
+                let today = Date()
+                var currentStat = try await manager.fetchDailyStats(for: today) ?? DailyStat(
+                    userId: userId,
+                    date: formatDate(today),
+                    totalFocusTime: 0,
+                    sessionCount: 0,
+                    avgProductivityScore: 0,
+                    distractionCount: 0
+                )
+                
+                // 2. Update stats
+                let sessionDuration = Int(session.duration)
+                let sessionScore = session.focusScore
+                let sessionDistractions = session.distractions.count
+                
+                let oldTotalScore = currentStat.avgProductivityScore * Double(currentStat.sessionCount)
+                currentStat.sessionCount += 1
+                currentStat.totalFocusTime += sessionDuration
+                currentStat.distractionCount += sessionDistractions
+                currentStat.avgProductivityScore = (oldTotalScore + sessionScore) / Double(currentStat.sessionCount)
+                
+                // 3. Upsert
+                try await manager.upsertDailyStat(currentStat)
+                print("SessionViewModel: Successfully synced daily stats for \(currentStat.date)")
+            } catch {
+                print("SessionViewModel: Failed to sync stats - \(error.localizedDescription)")
+            }
+        }
+    }
+    
+    private func formatDate(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        return formatter.string(from: date)
     }
     
     func logDistraction(description: String) {

@@ -5,6 +5,7 @@ struct TodayView: View {
     
     @Binding var activeTab: Tab
     @EnvironmentObject var viewModel: SessionViewModel
+    @StateObject private var supabaseManager = SupabaseManager.shared
     
     // Real Data Logic
     private var calendar: Calendar { Calendar.current }
@@ -13,6 +14,10 @@ struct TodayView: View {
     @State private var selectedDay: Int = Calendar.current.component(.day, from: Date())
     @Namespace private var animationNamespace
     @State private var showingHistory = false
+    
+    // Supabase Stats State
+    @State private var dailyStat: DailyStat?
+    @State private var isLoadingStats = false
     
     private var currentDay: Int {
         calendar.component(.day, from: today)
@@ -29,54 +34,45 @@ struct TodayView: View {
     }
     
     // Data Helpers
-    func getSessions(for day: Int) -> [StudySession] {
+    func fetchStats() {
         let selectedDateComponents = DateComponents(year: calendar.component(.year, from: today),
                                                     month: calendar.component(.month, from: today),
-                                                    day: day)
+                                                    day: selectedDay)
+        guard let date = calendar.date(from: selectedDateComponents) else { return }
         
-        let dayDate = calendar.date(from: selectedDateComponents) ?? Date.distantPast
-        
-        // Filter past sessions
-        var sessions = viewModel.pastSessions.filter { session in
-            calendar.isDate(session.startTime, inSameDayAs: dayDate)
+        isLoadingStats = true
+        Task {
+            do {
+                let stat = try await SupabaseManager.shared.fetchDailyStats(for: date)
+                await MainActor.run {
+                    self.dailyStat = stat
+                    self.isLoadingStats = false
+                }
+            } catch {
+                print("TodayView: Failed to fetch stats - \(error.localizedDescription)")
+                await MainActor.run {
+                    self.isLoadingStats = false
+                }
+            }
         }
-        
-        // Add current session if applicable
-        if let current = viewModel.currentSession,
-           calendar.isDate(current.startTime, inSameDayAs: dayDate) {
-            sessions.append(current)
-        }
-        
-        return sessions
     }
 
     var distractionInfoForSelectedDay: (distractions: Int, sessions: Int) {
-        let sessions = getSessions(for: selectedDay)
-        let distractionCount = sessions.reduce(0) { $0 + $1.distractions.count }
-        return (distractionCount, sessions.count)
+        if let stat = dailyStat {
+            return (stat.distractionCount, stat.sessionCount)
+        }
+        return (0, 0)
     }
     
-    // Real Stats generator
-    func getStats(for day: Int) -> (time: String, sessions: String, score: String) {
-        if day > currentDay { return ("-", "-", "-") }
-        
-        let sessions = getSessions(for: day)
-        
-        if sessions.isEmpty {
-            return ("0h 00m", "0", "-")
+    var displayStats: (time: String, sessions: String, score: String) {
+        if let stat = dailyStat {
+            let hours = stat.totalFocusTime / 3600
+            let minutes = (stat.totalFocusTime / 60) % 60
+            let timeString = String(format: "%dh %02dm", hours, minutes)
+            return (timeString, "\(stat.sessionCount)", "\(Int(stat.avgProductivityScore))%")
+        } else {
+            return ("0h 00m", "0", "0%")
         }
-        
-        // Calculate total duration
-        let totalDuration = sessions.reduce(0) { $0 + $1.duration }
-        let hours = Int(totalDuration) / 3600
-        let minutes = Int(totalDuration) / 60 % 60
-        let timeString = String(format: "%dh %02dm", hours, minutes)
-        
-        // Average Score
-        let totalScore = sessions.reduce(0) { $0 + $1.focusScore }
-        let averageScore = Int(totalScore / Double(sessions.count))
-        
-        return (timeString, "\(sessions.count)", "\(averageScore)%")
     }
     
     var body: some View {
@@ -222,7 +218,7 @@ struct TodayView: View {
                 }
                 
                 // Summary Cards
-                let stats = getStats(for: selectedDay)
+                let stats = displayStats
                 
                 HStack(spacing: 15) {
                     SummaryCard(
@@ -243,6 +239,16 @@ struct TodayView: View {
                     .buttonStyle(PlainButtonStyle())
                 }
                 .padding(.horizontal)
+                .overlay(
+                    Group {
+                        if isLoadingStats {
+                            ProgressView()
+                                .padding()
+                                .background(Color.white.opacity(0.8))
+                                .cornerRadius(10)
+                        }
+                    }
+                )
                 
                 SummaryCard(
                     title: "Productivity Score",
@@ -255,6 +261,15 @@ struct TodayView: View {
                 Spacer()
             }
             .padding(.bottom, 100)
+            }
+            .onAppear {
+                fetchStats()
+            }
+            .onChange(of: selectedDay) { _ in
+                fetchStats()
+            }
+            .onChange(of: supabaseManager.currentUser) { _ in
+                fetchStats()
             }
             .navigationBarHidden(true)
         }

@@ -10,6 +10,7 @@ enum AppPhase {
 @main
 struct FocusOSApp: App {
     @StateObject private var sessionViewModel = SessionViewModel()
+    @StateObject private var supabaseManager = SupabaseManager.shared
     @State private var appPhase: AppPhase = .splash
     
     var body: some Scene {
@@ -19,13 +20,21 @@ struct FocusOSApp: App {
                 case .splash:
                     SplashScreenView {
                         withAnimation {
-                            appPhase = .auth
+                            if supabaseManager.session != nil {
+                                appPhase = .main
+                            } else {
+                                appPhase = .auth
+                            }
                         }
                     }
                 case .auth:
-                    AuthView {
+                    AuthView { isSignUp in
                         withAnimation {
-                            appPhase = .onboarding
+                            if isSignUp {
+                                appPhase = .onboarding
+                            } else {
+                                appPhase = .main
+                            }
                         }
                     }
                     .transition(.opacity)
@@ -40,6 +49,15 @@ struct FocusOSApp: App {
                     MainTabView()
                         .environmentObject(sessionViewModel)
                         .transition(.opacity)
+                }
+            }
+            .onChange(of: supabaseManager.session) { newSession in
+                withAnimation {
+                    if newSession == nil {
+                        appPhase = .auth
+                    } else if appPhase == .auth {
+                        appPhase = .onboarding
+                    }
                 }
             }
         }
