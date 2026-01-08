@@ -30,11 +30,13 @@ class SessionViewModel: ObservableObject {
     }
     
     func loadInitialData() {
+        print("SessionViewModel: loadInitialData triggered")
         Task {
             do {
                 let sessions = try await SupabaseManager.shared.fetchSessions()
                 await MainActor.run {
                     self.pastSessions = sessions
+                    print("SessionViewModel: Loaded \(sessions.count) sessions")
                 }
             } catch {
                 print("SessionViewModel: Failed to load initial sessions - \(error.localizedDescription)")

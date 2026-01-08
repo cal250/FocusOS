@@ -265,10 +265,13 @@ struct TodayView: View {
             .onAppear {
                 fetchStats()
             }
-            .onChange(of: selectedDay) { _ in
+            .onChange(of: selectedDay) {
                 fetchStats()
             }
-            .onChange(of: supabaseManager.currentUser) { _ in
+            .onChange(of: supabaseManager.currentUser) {
+                fetchStats()
+            }
+            .onChange(of: viewModel.pastSessions.count) {
                 fetchStats()
             }
             .navigationBarHidden(true)

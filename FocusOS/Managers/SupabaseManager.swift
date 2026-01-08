@@ -81,7 +81,7 @@ class SupabaseManager: ObservableObject {
         print("SupabaseManager: Fetching stats for \(dateString)...")
         
         do {
-            let stats: [DailyStat] = try await client.database
+            let stats: [DailyStat] = try await client
                 .from("daily_stats")
                 .select()
                 .eq("user_id", value: userId)
@@ -89,10 +89,11 @@ class SupabaseManager: ObservableObject {
                 .execute()
                 .value
             
-            print("SupabaseManager: Fetch successful, found \(stats.count) records")
+            print("SupabaseManager: Fetch successful, found \(stats.count) records for \(dateString)")
             return stats.first
         } catch {
-            print("SupabaseManager: FETCH ERROR for \(dateString): \(error)")
+            print("SupabaseManager: FETCH ERROR for \(dateString): \(error.localizedDescription)")
+            print("SupabaseManager Details: \(error)")
             throw error
         }
     }
@@ -100,13 +101,13 @@ class SupabaseManager: ObservableObject {
     func upsertDailyStat(_ stat: DailyStat) async throws {
         print("SupabaseManager: Upserting stats for \(stat.date)...")
         do {
-            try await client.database
+            try await client
                 .from("daily_stats")
                 .upsert(stat)
                 .execute()
             print("SupabaseManager: Upsert successful for \(stat.date)")
         } catch {
-            print("SupabaseManager: UPSERT ERROR for \(stat.date): \(error)")
+            print("SupabaseManager: UPSERT ERROR for \(stat.date): \(error.localizedDescription)")
             throw error
         }
     }
@@ -122,7 +123,7 @@ class SupabaseManager: ObservableObject {
         print("SupabaseManager: Fetching sessions for \(userId)...")
         
         do {
-            let sessions: [StudySession] = try await client.database
+            let sessions: [StudySession] = try await client
                 .from("sessions")
                 .select()
                 .eq("user_id", value: userId)
@@ -130,10 +131,11 @@ class SupabaseManager: ObservableObject {
                 .execute()
                 .value
             
-            print("SupabaseManager: Fetch successful, found \(sessions.count) sessions")
+            print("SupabaseManager: Fetch successful, found \(sessions.count) sessions for user \(userId)")
             return sessions
         } catch {
-            print("SupabaseManager: FETCH SESSIONS ERROR: \(error)")
+            print("SupabaseManager: FETCH SESSIONS ERROR: \(error.localizedDescription)")
+            print("SupabaseManager Details: \(error)")
             throw error
         }
     }
@@ -148,13 +150,14 @@ class SupabaseManager: ObservableObject {
         }
         
         do {
-            try await client.database
+            try await client
                 .from("sessions")
                 .upsert(sessionToSave)
                 .execute()
-            print("SupabaseManager: Session save successful")
+            print("SupabaseManager: Session save successful for \(session.id)")
         } catch {
-            print("SupabaseManager: SAVE SESSION ERROR: \(error)")
+            print("SupabaseManager: SAVE SESSION ERROR: \(error.localizedDescription)")
+            print("SupabaseManager Details: \(error)")
             throw error
         }
     }

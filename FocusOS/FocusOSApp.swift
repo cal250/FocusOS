@@ -51,7 +51,7 @@ struct FocusOSApp: App {
                         .transition(.opacity)
                 }
             }
-            .onChange(of: supabaseManager.session) { newSession in
+            .onChange(of: supabaseManager.session) { _, newSession in
                 withAnimation {
                     if newSession == nil {
                         appPhase = .auth
