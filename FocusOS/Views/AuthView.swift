@@ -13,6 +13,7 @@ struct AuthView: View {
     @State private var isLoading = false
     @State private var errorMessage = ""
     @State private var showError = false
+    @State private var showingTerms = false
     
     var body: some View {
         ZStack {
@@ -91,16 +92,18 @@ struct AuthView: View {
                                         .foregroundColor(agreeToTerms ? Color(red: 0.25, green: 0.45, blue: 0.85) : .gray)
                                 }
                                 
-                                HStack(spacing: 4) {
                                     Text("I agree to")
                                         .font(.caption)
                                         .foregroundColor(.secondary)
                                     
-                                    Text("Terms and Conditions")
-                                        .font(.caption)
-                                        .fontWeight(.medium)
-                                        .foregroundColor(Color(red: 0.25, green: 0.45, blue: 0.85))
-                                }
+                                    Button(action: {
+                                        showingTerms = true
+                                    }) {
+                                        Text("Terms and Conditions")
+                                            .font(.caption)
+                                            .fontWeight(.medium)
+                                            .foregroundColor(Color(red: 0.25, green: 0.45, blue: 0.85))
+                                    }
                                 
                                 Spacer()
                             }
@@ -228,6 +231,11 @@ struct AuthView: View {
                 .ignoresSafeArea(edges: .bottom)
                 .offset(y: isAppeared ? 0 : UIScreen.main.bounds.height)
             }
+        }
+        .sheet(isPresented: $showingTerms) {
+            TermsAndConditionsView(onAccept: {
+                agreeToTerms = true
+            })
         }
         .onAppear {
             withAnimation(.spring(response: 0.6, dampingFraction: 0.8, blendDuration: 0)) {
