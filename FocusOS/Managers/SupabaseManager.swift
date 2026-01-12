@@ -101,6 +101,16 @@ class SupabaseManager: ObservableObject {
     }
     
     @MainActor
+    func getOAuthURL(provider: Provider) async throws -> URL {
+        print("SupabaseManager: Generating OAuth URL for \(provider)...")
+        let url = try await client.auth.getOAuthSignInURL(
+            provider: provider,
+            redirectTo: URL(string: "focusos://login-callback")!
+        )
+        return url
+    }
+    
+    @MainActor
     func deleteAccount() async throws {
         guard let userId = currentUser?.id else {
             print("SupabaseManager: No user for deleteAccount")

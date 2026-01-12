@@ -1,4 +1,6 @@
 import SwiftUI
+import AuthenticationServices
+import Supabase
 
 struct AuthView: View {
     var onComplete: (Bool) -> Void
@@ -209,8 +211,12 @@ struct AuthView: View {
                         .padding(.vertical, 10)
                         
                         HStack(spacing: 16) {
-                            SocialButton(icon: "apple.logo", text: "Apple", color: .black)
-                            SocialButton(imagePath: "/Users/calvin/.gemini/antigravity/brain/d9e6cae9-a606-4f26-839f-153919a23c87/google_logo_1767811237808.png", text: "Google")
+                            SocialButton(icon: "apple.logo", text: "Apple", color: .black) {
+                                handleOAuthSignIn(provider: .apple)
+                            }
+                            SocialButton(imagePath: "/Users/calvin/.gemini/antigravity/brain/d9e6cae9-a606-4f26-839f-153919a23c87/google_logo_1767811237808.png", text: "Google") {
+                                handleOAuthSignIn(provider: .google)
+                            }
                         }
                     }
                     
@@ -242,6 +248,61 @@ struct AuthView: View {
                 isAppeared = true
             }
         }
+    }
+    
+    // MARK: - OAuth Handler
+    
+    private func handleOAuthSignIn(provider: Provider) {
+        Task {
+            do {
+                let url = try await SupabaseManager.shared.getOAuthURL(provider: provider)
+                
+                // Use ASWebAuthenticationSession for a native-feeling OAuth flow
+                let session = ASWebAuthenticationSession(
+                    url: url,
+                    callbackURLScheme: "focusos"
+                ) { callbackURL, error in
+                    if let error = error {
+                        print("AuthView: OAuth error - \(error.localizedDescription)")
+                        return
+                    }
+                    
+                    if callbackURL != nil {
+                        Task {
+                            // Supabase Swift handles the session storage automatically when it detects auth state changes
+                            print("AuthView: OAuth session detected")
+                            await MainActor.run {
+                                onComplete(true)
+                            }
+                        }
+                    }
+                }
+                
+                session.presentationContextProvider = AuthPresentationContextProvider.shared
+                session.start()
+                
+            } catch {
+                errorMessage = error.localizedDescription
+                showError = true
+            }
+        }
+    }
+}
+
+// Helper for ASWebAuthenticationSession presentation
+class AuthPresentationContextProvider: NSObject, ASWebAuthenticationPresentationContextProviding {
+    static let shared = AuthPresentationContextProvider()
+    
+    func presentationAnchor(for session: ASWebAuthenticationSession) -> ASPresentationAnchor {
+        // Find the active window scene
+        let window = UIApplication.shared.connectedScenes
+            .filter { $0.activationState == .foregroundActive }
+            .compactMap { $0 as? UIWindowScene }
+            .first?.windows
+            .filter { $0.isKeyWindow }.first ??
+            UIApplication.shared.windows.first { $0.isKeyWindow }
+        
+        return window ?? ASPresentationAnchor()
     }
 }
 
@@ -296,11 +357,10 @@ struct SocialButton: View {
     var imagePath: String? = nil
     var text: String? = nil
     var color: Color = .black
+    var action: () -> Void
     
     var body: some View {
-        Button(action: {
-            // Social auth action (mock)
-        }) {
+        Button(action: action) {
             HStack(spacing: 10) {
                 Group {
                     if let imagePath = imagePath, let uiImage = UIImage(contentsOfFile: imagePath) {
