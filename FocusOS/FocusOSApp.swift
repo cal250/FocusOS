@@ -45,6 +45,7 @@ struct FocusOSApp: App {
                             appPhase = .main
                         }
                     }
+                    .environmentObject(habitsViewModel)
                     .transition(.opacity)
                 case .main:
                     MainTabView()

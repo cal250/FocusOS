@@ -207,61 +207,141 @@ struct HowItWorksPage: View {
 
 // MARK: - Page 3: Focus Breakers
 struct FocusBreakersPage: View {
+    @EnvironmentObject var habitsViewModel: HabitsViewModel
     var action: () -> Void
     
     let options = [
-        "Social Media", "Notifications", "Noise",
-        "Multitasking", "Daydreaming", "Other"
+        ("Social Media", "iphone"),
+        ("Notifications", "bell"),
+        ("Noise", "speaker.wave.2"),
+        ("Multitasking", "arrow.triangle.2.circlepath"),
+        ("Daydreaming", "cloud")
     ]
     
     @State private var selectedOptions: Set<String> = []
+    @State private var customHabit: String = ""
+    @State private var showCustomInput: Bool = false
     
     var body: some View {
-        VStack(spacing: 30) {
+        VStack(spacing: 20) {
             Spacer()
             
-            VStack(spacing: 10) {
+            VStack(spacing: 12) {
                 Text("What usually breaks\nyour focus?")
                     .font(.system(size: 28, weight: .bold, design: .rounded))
                     .multilineTextAlignment(.center)
                     .foregroundColor(.primary)
+                
+                Text("Select habits you want to track and overcome.")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
             }
-            .padding(.bottom, 20)
+            .padding(.bottom, 10)
             
-            LazyVGrid(columns: [GridItem(.adaptive(minimum: 140), spacing: 15)], spacing: 15) {
-                ForEach(options, id: \.self) { option in
-                    Button(action: {
-                        toggleSelection(option)
-                    }) {
-                        Text(option)
-                            .font(.system(size: 16, weight: .medium, design: .rounded))
-                            .foregroundColor(selectedOptions.contains(option) ? .white : .primary)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 50)
+            ScrollView {
+                VStack(spacing: 12) {
+                    // Predefined options
+                    ForEach(options, id: \.0) { option, icon in
+                        Button(action: {
+                            toggleSelection(option)
+                        }) {
+                            HStack(spacing: 15) {
+                                Image(systemName: icon)
+                                    .font(.system(size: 20))
+                                    .foregroundColor(selectedOptions.contains(option) ? .white : .blue)
+                                    .frame(width: 30)
+                                
+                                Text(option)
+                                    .font(.system(size: 16, weight: .medium, design: .rounded))
+                                    .foregroundColor(selectedOptions.contains(option) ? .white : .primary)
+                                
+                                Spacer()
+                                
+                                if selectedOptions.contains(option) {
+                                    Image(systemName: "checkmark.circle.fill")
+                                        .foregroundColor(.white)
+                                }
+                            }
+                            .padding(.horizontal, 20)
+                            .frame(height: 55)
                             .background(
                                 RoundedRectangle(cornerRadius: 15)
                                     .fill(selectedOptions.contains(option) ? Color.blue : Color(UIColor.secondarySystemBackground))
                             )
-                            .overlay(
+                        }
+                    }
+                    
+                    // Custom Habit Toggle/Input
+                    if showCustomInput {
+                        VStack(spacing: 10) {
+                            HStack {
+                                Image(systemName: "plus.circle.fill")
+                                    .foregroundColor(.blue)
+                                
+                                TextField("Enter custom habit...", text: $customHabit)
+                                    .font(.system(size: 16, weight: .medium, design: .rounded))
+                                
+                                Button(action: {
+                                    withAnimation {
+                                        showCustomInput = false
+                                        customHabit = ""
+                                    }
+                                }) {
+                                    Image(systemName: "xmark.circle.fill")
+                                        .foregroundColor(.gray)
+                                }
+                            }
+                            .padding(.horizontal, 20)
+                            .frame(height: 55)
+                            .background(
                                 RoundedRectangle(cornerRadius: 15)
-                                    .stroke(Color.blue.opacity(0.3), lineWidth: 1)
+                                    .fill(Color(UIColor.secondarySystemBackground))
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 15)
+                                            .stroke(Color.blue.opacity(0.3), lineWidth: 1)
+                                    )
                             )
+                        }
+                    } else {
+                        Button(action: {
+                            withAnimation {
+                                showCustomInput = true
+                            }
+                        }) {
+                            HStack {
+                                Image(systemName: "plus")
+                                Text("Add Custom Habit")
+                                Spacer()
+                            }
+                            .font(.system(size: 16, weight: .medium, design: .rounded))
+                            .foregroundColor(.blue)
+                            .padding(.horizontal, 20)
+                            .frame(height: 55)
+                            .background(
+                                RoundedRectangle(cornerRadius: 15)
+                                    .stroke(Color.blue.opacity(0.3), style: StrokeStyle(lineWidth: 1, dash: [5]))
+                            )
+                        }
                     }
                 }
+                .padding(.horizontal, 30)
+                .padding(.vertical, 10)
             }
-            .padding(.horizontal, 30)
             
             Spacer()
             
             // Finish Button
-            Button(action: action) {
-                Text("Continue") // "Continue" as requested, effectively finish
+            Button(action: {
+                saveAndFinish()
+            }) {
+                Text("Start Focusing")
                     .font(.headline)
                     .foregroundColor(.white)
                     .frame(maxWidth: .infinity)
                     .padding()
                     .background(Color.blue)
                     .cornerRadius(12)
+                    .shadow(color: Color.blue.opacity(0.3), radius: 10, x: 0, y: 5)
             }
             .padding(.horizontal, 40)
             .padding(.bottom, 50)
@@ -274,6 +354,23 @@ struct FocusBreakersPage: View {
         } else {
             selectedOptions.insert(option)
         }
+    }
+    
+    private func saveAndFinish() {
+        // 1. Add selected predefined habits
+        for option in selectedOptions {
+            let icon = options.first(where: { $0.0 == option })?.1 ?? "circle"
+            habitsViewModel.addHabit(name: option, icon: icon)
+        }
+        
+        // 2. Add custom habit if valid
+        let cleanedCustom = customHabit.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !cleanedCustom.isEmpty {
+            habitsViewModel.addHabit(name: cleanedCustom, icon: "star.fill")
+        }
+        
+        // 3. Complete onboarding
+        action()
     }
 }
 
