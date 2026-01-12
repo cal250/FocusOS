@@ -84,6 +84,7 @@ class SessionViewModel: ObservableObject {
             scheduleNotification(duration: duration)
         }
         
+        HapticManager.shared.playImpact(style: .medium)
         startTimer()
     }
     
@@ -145,6 +146,7 @@ class SessionViewModel: ObservableObject {
         // Show congrats if we stopped manually (and haven't already shown it for completion)
         // Or essentially always show it on stop as "Congratulions and encouragement" requested.
         showCongratulationAlert = true
+        HapticManager.shared.playNotification(type: .success)
     }
     
     private func syncSession(_ session: StudySession) {
@@ -209,6 +211,7 @@ class SessionViewModel: ObservableObject {
         let distraction = Distraction(description: description)
         session.distractions.append(distraction)
         currentSession = session
+        HapticManager.shared.playImpact(style: .light)
     }
     
     func formattedElapsedTime() -> String {

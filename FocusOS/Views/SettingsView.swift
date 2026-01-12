@@ -39,6 +39,11 @@ struct SettingsView: View {
                             Text("Haptic Feedback")
                         }
                     }
+                    .onChange(of: hapticsEnabled) { _, newValue in
+                        if newValue {
+                            HapticManager.shared.playNotification(type: .success)
+                        }
+                    }
                 }
                 
                 // Privacy Section
