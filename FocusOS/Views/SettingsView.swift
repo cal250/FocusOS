@@ -44,6 +44,17 @@ struct SettingsView: View {
                             HapticManager.shared.playNotification(type: .success)
                         }
                     }
+                    
+                    if hapticsEnabled {
+                        Button(action: {
+                            HapticManager.shared.playImpact(style: .medium)
+                        }) {
+                            Text("Test Feedback")
+                                .font(.subheadline)
+                                .foregroundColor(.blue)
+                        }
+                        .padding(.leading, 40)
+                    }
                 }
                 
                 // Privacy Section

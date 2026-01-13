@@ -1,36 +1,61 @@
 import UIKit
 import SwiftUI
 
+@MainActor
 class HapticManager {
     static let shared = HapticManager()
     
-    private init() {}
+    // Storing generators to reduce latency and improve reliability
+    private let impactLight = UIImpactFeedbackGenerator(style: .light)
+    private let impactMedium = UIImpactFeedbackGenerator(style: .medium)
+    private let notifications = UINotificationFeedbackGenerator()
+    private let selection = UISelectionFeedbackGenerator()
+    
+    private init() {
+        print("HapticManager: Initializing generators...")
+        impactLight.prepare()
+        impactMedium.prepare()
+        notifications.prepare()
+        selection.prepare()
+    }
     
     private var hapticsEnabled: Bool {
+        // AppStorage key fallback
         if UserDefaults.standard.object(forKey: "hapticsEnabled") == nil {
-            return true // Default to true as shown in UI
+            return true
         }
         return UserDefaults.standard.bool(forKey: "hapticsEnabled")
     }
     
     func playImpact(style: UIImpactFeedbackGenerator.FeedbackStyle) {
         guard hapticsEnabled else { return }
-        let generator = UIImpactFeedbackGenerator(style: style)
-        generator.prepare()
-        generator.impactOccurred()
+        print("HapticManager: Play Impact (\(style))")
+        
+        switch style {
+        case .light:
+            impactLight.impactOccurred()
+            impactLight.prepare() // Prepare for next time
+        case .medium:
+            impactMedium.impactOccurred()
+            impactMedium.prepare()
+        default:
+            let generator = UIImpactFeedbackGenerator(style: style)
+            generator.prepare()
+            generator.impactOccurred()
+        }
     }
     
     func playNotification(type: UINotificationFeedbackGenerator.FeedbackType) {
         guard hapticsEnabled else { return }
-        let generator = UINotificationFeedbackGenerator()
-        generator.prepare()
-        generator.notificationOccurred(type)
+        print("HapticManager: Play Notification (\(type))")
+        notifications.notificationOccurred(type)
+        notifications.prepare()
     }
     
     func playSelection() {
         guard hapticsEnabled else { return }
-        let generator = UISelectionFeedbackGenerator()
-        generator.prepare()
-        generator.selectionChanged()
+        print("HapticManager: Play Selection")
+        selection.selectionChanged()
+        selection.prepare()
     }
 }

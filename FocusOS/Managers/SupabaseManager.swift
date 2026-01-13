@@ -103,7 +103,7 @@ class SupabaseManager: ObservableObject {
     @MainActor
     func getOAuthURL(provider: Provider) async throws -> URL {
         print("SupabaseManager: Generating OAuth URL for \(provider)...")
-        let url = try await client.auth.getOAuthSignInURL(
+        let url = try client.auth.getOAuthSignInURL(
             provider: provider,
             redirectTo: URL(string: "focusos://login-callback")!
         )

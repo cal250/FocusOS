@@ -2,6 +2,7 @@ import SwiftUI
 import Combine
 import UserNotifications
 
+@MainActor
 class SessionViewModel: ObservableObject {
     @Published var currentSession: StudySession?
     @Published var isSessionActive: Bool = false
