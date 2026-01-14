@@ -51,6 +51,7 @@ struct HabitsView: View {
                             }
                         }
                     }
+                    .walkthroughAnchor(.habitsSection)
                     
                     Section(header: Text("Distraction History")) {
                         if allDistractions.isEmpty {

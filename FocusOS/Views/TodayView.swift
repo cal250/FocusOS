@@ -156,6 +156,7 @@ struct TodayView: View {
                 .padding()
                 .background(Color(UIColor.secondarySystemBackground))
                 .cornerRadius(15)
+                .walkthroughAnchor(.todayOverview) // Attached to card
                 .padding(.horizontal)
                 
                 // Distraction Indicator
@@ -249,7 +250,8 @@ struct TodayView: View {
                         }
                     }
                 )
-                
+                .walkthroughAnchor(.sessionHistory)
+
                 SummaryCard(
                     title: "Productivity Score",
                     value: stats.score,

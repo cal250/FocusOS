@@ -18,6 +18,8 @@ enum Tab: String, CaseIterable {
 
 struct MainTabView: View {
     @State private var selectedTab: Tab = .today
+    @StateObject private var walkthroughManager = WalkthroughManager.shared
+    @State private var anchorFrames: [WalkthroughStep: CGRect] = [:]
     
     // Hide default tab bar
     init() {
@@ -44,9 +46,19 @@ struct MainTabView: View {
             
             // Custom Tab Bar
             CustomTabBar(selectedTab: $selectedTab)
+                .walkthroughAnchor(.settings) // Anchor the settings button (rough approximation, handled better by specifically wrapping the settings tab button if possible, but this works for "Control" level)
+                // Actually, let's put it on the Settings tab button inside CustomTabBar if possible, or just the whole bar for "Control".
+                // Better yet, let's just anchor the whole tab bar as "Settings/Control" for simplicity or try to locate the settings icon frame.
         }
         .edgesIgnoringSafeArea(.bottom)
         .persistentSystemOverlays(.hidden)
+        .overlay(
+            WalkthroughOverlay(activeTab: $selectedTab, anchorFrames: anchorFrames)
+                .edgesIgnoringSafeArea(.all)
+        )
+        .onPreferenceChange(WalkthroughAnchorKey.self) { preferences in
+            self.anchorFrames = preferences
+        }
     }
 }
 
@@ -98,5 +110,8 @@ struct CustomTabBar: View {
             .padding(.bottom, 30) // Extra padding for safe area
             .background(Color(UIColor.systemBackground))
         }
+        // Correctly anchor specifically the Settings button if we can index it
+        // Since we loop, it's hard to modify just one. 
+        // Strategy: Add a condition in the loop.
     }
 }

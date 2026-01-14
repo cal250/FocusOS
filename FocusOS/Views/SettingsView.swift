@@ -57,6 +57,19 @@ struct SettingsView: View {
                     }
                 }
                 
+                Section(header: Text("Help & Guide")) {
+                    Button(action: {
+                        WalkthroughManager.shared.reset()
+                    }) {
+                        HStack {
+                            Image(systemName: "figure.walk")
+                                .foregroundColor(.blue)
+                            Text("Replay Welcome Guide")
+                                .foregroundColor(.primary)
+                        }
+                    }
+                }
+                
                 // Privacy Section
                 Section(header: Text("Privacy")) {
                     HStack(alignment: .top, spacing: 12) {
