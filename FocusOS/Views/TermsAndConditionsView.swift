@@ -25,6 +25,7 @@ struct TermsAndConditionsView: View {
                     Spacer()
                     Text("Before You Begin")
                         .font(.system(size: 17, weight: .semibold))
+                        .foregroundColor(Color(red: 0.1, green: 0.1, blue: 0.1))
                     Spacer()
                     // Dummy spacer to balance back button
                     Color.clear.frame(width: 20, height: 20)
@@ -50,11 +51,12 @@ struct TermsAndConditionsView: View {
                         VStack(spacing: 12) {
                             Text("FocusOS Ethical Agreement")
                                 .font(.system(size: 20, weight: .bold))
+                                .foregroundColor(Color(red: 0.1, green: 0.1, blue: 0.1))
                             
                             Text("Please review how FocusOS supports your productivity journey through discipline and awareness.")
                                 .font(.system(size: 15))
                                 .multilineTextAlignment(.center)
-                                .foregroundColor(.gray)
+                                .foregroundColor(Color(red: 0.4, green: 0.4, blue: 0.4))
                                 .padding(.horizontal, 20)
                         }
                         
@@ -98,6 +100,7 @@ struct TermsAndConditionsView: View {
                                 HStack(spacing: 4) {
                                     Text("I agree to the")
                                         .font(.system(size: 16))
+                                        .foregroundColor(Color(red: 0.1, green: 0.1, blue: 0.1))
                                     Text("terms and conditions")
                                         .font(.system(size: 16))
                                         .foregroundColor(.blue)
@@ -108,7 +111,7 @@ struct TermsAndConditionsView: View {
                             // legal-ish text
                             Text("By agreeing, you acknowledge that FocusOS is a tool for self-discipline and you accept full responsibility for your usage and decisions. FocusOS is not a medical application.")
                                 .font(.system(size: 14))
-                                .foregroundColor(.gray)
+                                .foregroundColor(Color(red: 0.4, green: 0.4, blue: 0.4))
                                 .lineSpacing(4)
                         }
                         .padding(.horizontal, 20)
@@ -140,6 +143,8 @@ struct TermsAndConditionsView: View {
                         .padding(.bottom, 30)
                     }
                     .padding(.bottom, 20)
+                    .frame(maxWidth: UIDevice.current.userInterfaceIdiom == .pad ? 600 : .infinity)
+                    .frame(maxWidth: .infinity) // Center the constrained view
                 }
             }
         }
@@ -158,7 +163,7 @@ struct InfoItem: View {
     let content: String
     
     var body: some View {
-        HStack(alignment: .top, spacing: 16) {
+        HStack(alignment: .center, spacing: 16) {
             ZStack {
                 Circle()
                     .fill(Color.blue.opacity(0.05))
@@ -174,7 +179,7 @@ struct InfoItem: View {
                     .font(.system(size: 16, weight: .bold))
                 Text(content)
                     .font(.system(size: 14))
-                    .foregroundColor(.gray)
+                    .foregroundColor(Color(red: 0.4, green: 0.4, blue: 0.4))
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
@@ -193,7 +198,7 @@ struct FooterLink: View {
                 Text(text)
                     .font(.system(size: 14))
             }
-            .foregroundColor(.gray)
+            .foregroundColor(Color(red: 0.4, green: 0.4, blue: 0.4))
         }
     }
 }

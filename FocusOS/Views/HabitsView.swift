@@ -112,5 +112,6 @@ struct HabitsView: View {
             }
             .padding(.bottom, 60) 
         }
+        .navigationViewStyle(StackNavigationViewStyle())
     }
 }

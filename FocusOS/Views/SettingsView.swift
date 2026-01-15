@@ -116,6 +116,7 @@ struct SettingsView: View {
             // Apply padding to avoid overlap with custom tab bar
             .padding(.bottom, 60)
         }
+        .navigationViewStyle(StackNavigationViewStyle())
         // Force color scheme based on selection for demo
         .preferredColorScheme(isDarkMode ? .dark : .light)
     }
