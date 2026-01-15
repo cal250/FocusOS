@@ -4,6 +4,8 @@ struct WalkthroughOverlay: View {
     @ObservedObject var manager = WalkthroughManager.shared
     @Binding var activeTab: Tab
     @State private var pulse = false
+    @State private var rippleScale: CGFloat = 1.0
+    @State private var rippleOpacity: Double = 0.5
     
     // We receive the anchor rects via preference key
     var anchorFrames: [WalkthroughStep: CGRect]
@@ -19,49 +21,99 @@ struct WalkthroughOverlay: View {
                                 Rectangle().fill(Color.white)
                                 
                                 if let frame = anchorFrames[manager.currentStep] {
-                                    // The cutout
-                                    RoundedRectangle(cornerRadius: 15)
-                                        .fill(Color.black)
-                                        .frame(width: frame.width, height: frame.height)
-                                        .position(x: frame.midX, y: frame.midY)
-                                        .blendMode(.destinationOut)
+                                    // The cutout with dynamic shape
+                                    Group {
+                                        switch manager.currentStep.shape {
+                                        case .circle:
+                                            Circle()
+                                                .fill(Color.black)
+                                                .frame(width: frame.width, height: frame.height)
+                                                .position(x: frame.midX, y: frame.midY)
+                                                .blendMode(.destinationOut)
+                                        case .roundedRect(let cornerRadius):
+                                            RoundedRectangle(cornerRadius: cornerRadius)
+                                                .fill(Color.black)
+                                                .frame(width: frame.width, height: frame.height)
+                                                .position(x: frame.midX, y: frame.midY)
+                                                .blendMode(.destinationOut)
+                                        }
+                                    }
                                 }
                             }
                             .compositingGroup()
                         )
-                        .edgesIgnoringSafeArea(.all) // Keep this for the Color fill
+                        .edgesIgnoringSafeArea(.all)
                         .onTapGesture {
                             // Block interaction with background
                         }
                     
-                    // Spotlight Border with Pulsing Blue Glow
+                    // Spotlight Border with Enhanced Ripple
                     if let frame = anchorFrames[manager.currentStep] {
-                        ZStack {
-                            // Outer glow
-                            RoundedRectangle(cornerRadius: 15)
-                                .stroke(Color.blue, lineWidth: 4)
-                                .shadow(color: Color.blue, radius: pulse ? 10 : 2) // Adjusted shadow for tighter feel
-                                .opacity(pulse ? 1.0 : 0.6) // Brighter pulse
-                            
-                            // No inner white border needed if hugging tight? 
-                            // User asked for "blue cole border". Let's stick to just the blue glow or simple border.
-                            // The previous inner white border might look weird if perfectly tight.
-                            // Let's keep it simple: Pulsing blue stroke.
-                        }
-                        .frame(width: frame.width, height: frame.height)
-                        .position(x: frame.midX, y: frame.midY)
-                        .animation(Animation.easeInOut(duration: 1.5).repeatForever(autoreverses: true), value: pulse)
-                        .onAppear {
-                            pulse = true
+                        Group {
+                            switch manager.currentStep.shape {
+                            case .circle:
+                                ZStack {
+                                    // Ripple Layer 1 (Wide Wave)
+                                    Circle()
+                                        .stroke(Color.blue, lineWidth: 2)
+                                        .scaleEffect(rippleScale)
+                                        .opacity(rippleOpacity)
+                                    
+                                    // Ripple Layer 2 (Inner Wave)
+                                    Circle()
+                                        .stroke(Color.blue, lineWidth: 2)
+                                        .scaleEffect(rippleScale * 0.8)
+                                        .opacity(rippleOpacity * 0.8)
+                                    
+                                    // Core Border
+                                    Circle()
+                                        .stroke(Color.blue, lineWidth: 3)
+                                        .shadow(color: Color.blue, radius: 10)
+                                }
+                                .frame(width: frame.width, height: frame.height)
+                                .position(x: frame.midX, y: frame.midY)
+                                .onAppear {
+                                    withAnimation(Animation.easeOut(duration: 1.5).repeatForever(autoreverses: false)) {
+                                        rippleScale = 1.6
+                                        rippleOpacity = 0.0
+                                    }
+                                }
+                            case .roundedRect(let cornerRadius):
+                                ZStack {
+                                    // Ripple Layer 1 (Wide Wave)
+                                    RoundedRectangle(cornerRadius: cornerRadius)
+                                        .stroke(Color.blue, lineWidth: 2)
+                                        .scaleEffect(rippleScale)
+                                        .opacity(rippleOpacity)
+                                    
+                                    // Ripple Layer 2 (Inner Wave)
+                                    RoundedRectangle(cornerRadius: cornerRadius)
+                                        .stroke(Color.blue, lineWidth: 2)
+                                        .scaleEffect(rippleScale * 0.8)
+                                        .opacity(rippleOpacity * 0.8)
+                                    
+                                    // Core Border
+                                    RoundedRectangle(cornerRadius: cornerRadius)
+                                        .stroke(Color.blue, lineWidth: 3)
+                                        .shadow(color: Color.blue, radius: 10)
+                                }
+                                .frame(width: frame.width, height: frame.height)
+                                .position(x: frame.midX, y: frame.midY)
+                                .onAppear {
+                                    withAnimation(Animation.easeOut(duration: 1.5).repeatForever(autoreverses: false)) {
+                                        rippleScale = 1.6
+                                        rippleOpacity = 0.0
+                                    }
+                                }
+                            }
                         }
                         
                         // Instructional Text & Controls
-                        // Calculate position based on the frame (above or below)
                         let isTopHalf = frame.midY < geometry.size.height / 2
                         
                         VStack(spacing: 16) {
                             Text(manager.currentStep.title)
-                                .font(.title3) // Larger title
+                                .font(.title3)
                                 .fontWeight(.bold)
                                 .foregroundColor(.white)
                             
@@ -78,6 +130,7 @@ struct WalkthroughOverlay: View {
                                 }
                                 .font(.subheadline)
                                 .foregroundColor(.white.opacity(0.6))
+                                .padding()
                                 
                                 Button(action: {
                                     manager.next()
@@ -98,7 +151,6 @@ struct WalkthroughOverlay: View {
                         }
                         .padding(24)
                         .frame(maxWidth: 320)
-                        // Position logic: if low on screen, put text above. If high, put below.
                         .position(
                             x: geometry.size.width / 2,
                             y: isTopHalf ? frame.maxY + 120 : frame.minY - 120
@@ -107,9 +159,8 @@ struct WalkthroughOverlay: View {
                 }
             }
             .transition(.opacity)
-            .zIndex(999) // Ensure it's on top
+            .zIndex(999)
             .onChange(of: manager.currentStep) { _, newStep in
-                // Automatically switch tabs if the step requires it
                 if let requiredTab = newStep.requiredTab {
                     if activeTab != requiredTab {
                         withAnimation {
@@ -118,7 +169,6 @@ struct WalkthroughOverlay: View {
                     }
                 }
             }
-            // Ensure first tab is correct on start
             .onAppear {
                 if let requiredTab = manager.currentStep.requiredTab, activeTab != requiredTab {
                     activeTab = requiredTab

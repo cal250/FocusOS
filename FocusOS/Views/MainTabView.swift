@@ -46,9 +46,6 @@ struct MainTabView: View {
             
             // Custom Tab Bar
             CustomTabBar(selectedTab: $selectedTab)
-                .walkthroughAnchor(.settings) // Anchor the settings button (rough approximation, handled better by specifically wrapping the settings tab button if possible, but this works for "Control" level)
-                // Actually, let's put it on the Settings tab button inside CustomTabBar if possible, or just the whole bar for "Control".
-                // Better yet, let's just anchor the whole tab bar as "Settings/Control" for simplicity or try to locate the settings icon frame.
         }
         .edgesIgnoringSafeArea(.bottom)
         .persistentSystemOverlays(.hidden)
@@ -102,6 +99,7 @@ struct CustomTabBar: View {
                                 .foregroundColor(selectedTab == tab ? .blue : .gray)
                         }
                     }
+                    .walkthroughAnchor(anchor(for: tab))
                     
                     Spacer()
                 }
@@ -110,8 +108,14 @@ struct CustomTabBar: View {
             .padding(.bottom, 30) // Extra padding for safe area
             .background(Color(UIColor.systemBackground))
         }
-        // Correctly anchor specifically the Settings button if we can index it
-        // Since we loop, it's hard to modify just one. 
-        // Strategy: Add a condition in the loop.
+    }
+    
+    private func anchor(for tab: Tab) -> WalkthroughStep {
+        switch tab {
+        case .today: return .navToday
+        case .habits: return .navHabits
+        case .focus: return .navFocus
+        case .settings: return .navSettings
+        }
     }
 }

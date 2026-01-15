@@ -78,191 +78,15 @@ struct TodayView: View {
     var body: some View {
         NavigationView {
             ScrollView {
-            VStack(spacing: 25) {
-                // Header
-                HStack {
-                    VStack(alignment: .leading) {
-                        Text(Date(), style: .date)
-                            .font(.caption)
-                            .foregroundColor(.gray)
-                        Text("Today")
-                            .font(.largeTitle)
-                            .fontWeight(.bold)
-                    }
+                VStack(spacing: 25) {
+                    headerView
+                    calendarView
+                    distractionIndicatorView
+                    summaryCardsView
+                    productivityCardView
                     Spacer()
-                    
-                    NavigationLink(destination: AccountView()) {
-                        Image(systemName: "person.crop.circle")
-                            .font(.title)
-                            .foregroundColor(.gray)
-                    }
                 }
-                .padding(.horizontal)
-                .padding(.top, 20)
-                
-                // Month Calendar
-                VStack(spacing: 15) {
-                    // Weekday Headers
-                    HStack {
-                        ForEach(weekDays, id: \.self) { day in
-                            Text(day)
-                                .font(.caption2)
-                                .fontWeight(.medium)
-                                .foregroundColor(.gray)
-                                .frame(maxWidth: .infinity)
-                        }
-                    }
-                    
-                    // Days Grid
-                    LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 7), spacing: 15) {
-                        // Offset for start of month
-                        ForEach(0..<startOffset, id: \.self) { _ in Spacer() }
-                        
-                        ForEach(1...daysInMonth, id: \.self) { day in
-                            let isFuture = day > currentDay
-                            let isToday = day == currentDay
-                            let isSelected = selectedDay == day
-                            
-                            VStack(spacing: 4) {
-                                ZStack {
-                                    if isSelected {
-                                        Circle()
-                                            .fill(Color.blue)
-                                            .matchedGeometryEffect(id: "selection", in: animationNamespace)
-                                    }
-                                    
-                                    Text("\(day)")
-                                        .font(.system(size: 14, weight: isToday || isSelected ? .bold : .regular))
-                                        .foregroundColor(isSelected ? .white : (isToday ? .blue : (isFuture ? .gray.opacity(0.3) : .primary)))
-                                }
-                                .frame(width: 30, height: 30)
-                                
-                                // Dot
-                                Circle()
-                                    .fill(!isFuture && day % 2 != 0 ? Color.blue.opacity(0.5) : Color.clear)
-                                    .frame(width: 4, height: 4)
-                            }
-                            .contentShape(Rectangle()) // Make touch area usable
-                            .onTapGesture {
-                                if !isFuture {
-                                    withAnimation(.spring()) {
-                                        selectedDay = day
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-                .padding()
-                .background(Color(UIColor.secondarySystemBackground))
-                .cornerRadius(15)
-                .walkthroughAnchor(.todayOverview) // Attached to card
-                .padding(.horizontal)
-                
-                // Distraction Indicator
-                VStack(spacing: 8) {
-                    let info = distractionInfoForSelectedDay
-                    
-                    HStack(spacing: 8) {
-                        if info.sessions > 0 && info.distractions == 0 {
-                            // Perfect Day
-                             Circle()
-                                 .fill(Color.blue)
-                                 .frame(width: 8, height: 8)
-                        } else {
-                            // Mixed or Empty
-                            let count = info.distractions
-                            let maxDots = 8
-                            // If no sessions, show empty slots layout. If sessions exist but with distractions, show distractions.
-                            // User request: "limit visible dots to a maximum of 6–8"
-                            // If count is 0 (and sessions=0), displayCount is 0.
-                            
-                            let displayCount = min(count, maxDots)
-                            
-                            ForEach(0..<maxDots, id: \.self) { index in
-                                if index < displayCount {
-                                    Circle()
-                                        .fill(Color.orange.opacity(0.7))
-                                        .frame(width: 8, height: 8)
-                                } else {
-                                    Circle()
-                                        .fill(Color.gray.opacity(0.3))
-                                        .frame(width: 8, height: 8)
-                                }
-                            }
-                            
-                            if count > maxDots {
-                                Text("+\(count - maxDots)")
-                                    .font(.caption2)
-                                    .foregroundColor(.orange)
-                            }
-                        }
-                    }
-                    
-                    if info.sessions > 0 && info.distractions == 0 {
-                         Text("Perfect focus today!")
-                            .font(.caption)
-                            .foregroundColor(.blue)
-                    } else if info.sessions == 0 {
-                        Text("No sessions recorded")
-                            .font(.caption)
-                            .foregroundColor(.gray)
-                    } else {
-                        Text("Distractions logged today")
-                            .font(.caption)
-                            .foregroundColor(.gray)
-                    }
-                }
-                .padding(.top, 5)
-                .onTapGesture {
-                    activeTab = .habits
-                }
-                
-                // Summary Cards
-                let stats = displayStats
-                
-                HStack(spacing: 15) {
-                    SummaryCard(
-                        title: "Focus Time",
-                        value: stats.time,
-                        icon: "timer",
-                        color: .blue
-                    )
-                    
-                    NavigationLink(destination: SessionHistoryView()) {
-                        SummaryCard(
-                            title: "Sessions",
-                            value: stats.sessions,
-                            icon: "checkmark.circle.fill",
-                            color: .green
-                        )
-                    }
-                    .buttonStyle(PlainButtonStyle())
-                }
-                .padding(.horizontal)
-                .overlay(
-                    Group {
-                        if isLoadingStats {
-                            ProgressView()
-                                .padding()
-                                .background(Color.white.opacity(0.8))
-                                .cornerRadius(10)
-                        }
-                    }
-                )
-                .walkthroughAnchor(.sessionHistory)
-
-                SummaryCard(
-                    title: "Productivity Score",
-                    value: stats.score,
-                    icon: "chart.bar.fill",
-                    color: .orange
-                )
-                .padding(.horizontal)
-                
-                Spacer()
-            }
-            .padding(.bottom, 100)
+                .padding(.bottom, 100)
             }
             .onAppear {
                 fetchStats()
@@ -282,6 +106,199 @@ struct TodayView: View {
     }
 }
 
+// MARK: - Subviews
+extension TodayView {
+    
+    private var headerView: some View {
+        HStack {
+            VStack(alignment: .leading) {
+                Text(Date(), style: .date)
+                    .font(.caption)
+                    .foregroundColor(.gray)
+                Text("Today")
+                    .font(.largeTitle)
+                    .fontWeight(.bold)
+            }
+            Spacer()
+            
+            NavigationLink(destination: AccountView()) {
+                Image(systemName: "person.crop.circle")
+                    .font(.title)
+                    .foregroundColor(.gray)
+            }
+        }
+        .padding(.horizontal)
+        .padding(.top, 20)
+    }
+    
+    private var calendarView: some View {
+        VStack(spacing: 15) {
+            // Weekday Headers
+            HStack {
+                ForEach(weekDays, id: \.self) { day in
+                    Text(day)
+                        .font(.caption2)
+                        .fontWeight(.medium)
+                        .foregroundColor(.gray)
+                        .frame(maxWidth: .infinity)
+                }
+            }
+            
+            // Days Grid
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 7), spacing: 15) {
+                // Offset for start of month
+                ForEach(0..<startOffset, id: \.self) { _ in Spacer() }
+                
+                ForEach(1...daysInMonth, id: \.self) { day in
+                    let isFuture = day > currentDay
+                    let isToday = day == currentDay
+                    let isSelected = selectedDay == day
+                    
+                    VStack(spacing: 4) {
+                        ZStack {
+                            if isSelected {
+                                Circle()
+                                    .fill(Color.blue)
+                                    .matchedGeometryEffect(id: "selection", in: animationNamespace)
+                            }
+                            
+                            Text("\(day)")
+                                .font(.system(size: 14, weight: isToday || isSelected ? .bold : .regular))
+                                .foregroundColor(isSelected ? .white : (isToday ? .blue : (isFuture ? .gray.opacity(0.3) : .primary)))
+                        }
+                        .frame(width: 30, height: 30)
+                        
+                        // Dot
+                        Circle()
+                            .fill(!isFuture && day % 2 != 0 ? Color.blue.opacity(0.5) : Color.clear)
+                            .frame(width: 4, height: 4)
+                    }
+                    .contentShape(Rectangle()) // Make touch area usable
+                    .onTapGesture {
+                        if !isFuture {
+                            withAnimation(.spring()) {
+                                selectedDay = day
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        .padding()
+        .background(Color(UIColor.secondarySystemBackground))
+        .cornerRadius(15)
+        .walkthroughAnchor(.calendar) // Attached to calendar card
+        .padding(.horizontal)
+    }
+    
+    @ViewBuilder
+    private var distractionIndicatorView: some View {
+        VStack(spacing: 8) {
+            let info = distractionInfoForSelectedDay
+            
+            HStack(spacing: 8) {
+                if info.sessions > 0 && info.distractions == 0 {
+                    // Perfect Day
+                     Circle()
+                         .fill(Color.blue)
+                         .frame(width: 8, height: 8)
+                } else {
+                    // Mixed or Empty
+                    let count = info.distractions
+                    let maxDots = 8
+                    
+                    let displayCount = min(count, maxDots)
+                    
+                    ForEach(0..<maxDots, id: \.self) { index in
+                        if index < displayCount {
+                            Circle()
+                                .fill(Color.orange.opacity(0.7))
+                                .frame(width: 8, height: 8)
+                        } else {
+                            Circle()
+                                .fill(Color.gray.opacity(0.3))
+                                .frame(width: 8, height: 8)
+                        }
+                    }
+                    
+                    if count > maxDots {
+                        Text("+\(count - maxDots)")
+                            .font(.caption2)
+                            .foregroundColor(.orange)
+                    }
+                }
+            }
+            
+            if info.sessions > 0 && info.distractions == 0 {
+                 Text("Perfect focus today!")
+                    .font(.caption)
+                    .foregroundColor(.blue)
+            } else if info.sessions == 0 {
+                Text("No sessions recorded")
+                    .font(.caption)
+                    .foregroundColor(.gray)
+            } else {
+                Text("Distractions logged today")
+                    .font(.caption)
+                    .foregroundColor(.gray)
+            }
+        }
+        .padding(.top, 5)
+        .onTapGesture {
+            activeTab = .habits
+        }
+    }
+    
+    @ViewBuilder
+    private var summaryCardsView: some View {
+        let stats = displayStats
+        HStack(spacing: 15) {
+            SummaryCard(
+                title: "Focus Time",
+                value: stats.time,
+                icon: "timer",
+                color: .blue
+            )
+            .walkthroughAnchor(.focusTimeCard)
+            
+            NavigationLink(destination: SessionHistoryView()) {
+                SummaryCard(
+                    title: "Sessions",
+                    value: stats.sessions,
+                    icon: "checkmark.circle.fill",
+                    color: .green
+                )
+            }
+            .buttonStyle(PlainButtonStyle())
+            .walkthroughAnchor(.sessionsCard)
+        }
+        .padding(.horizontal)
+        .overlay(
+            Group {
+                if isLoadingStats {
+                    ProgressView()
+                        .padding()
+                        .background(Color.white.opacity(0.8))
+                        .cornerRadius(10)
+                }
+            }
+        )
+    }
+
+    @ViewBuilder
+    private var productivityCardView: some View {
+        let stats = displayStats
+        SummaryCard(
+            title: "Productivity Score",
+            value: stats.score,
+            icon: "chart.bar.fill",
+            color: .orange
+        )
+        .walkthroughAnchor(.productivityCard)
+        .padding(.horizontal)
+    }
+}
+
 struct SummaryCard: View {
     let title: String
     let value: String
@@ -292,8 +309,8 @@ struct SummaryCard: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 Image(systemName: icon)
-                    .foregroundColor(color)
-                    .font(.headline)
+                .foregroundColor(color)
+                .font(.headline)
                 Spacer()
             }
             
