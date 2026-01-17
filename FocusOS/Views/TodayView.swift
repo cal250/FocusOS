@@ -104,14 +104,7 @@ struct TodayView: View {
             .padding(.bottom, horizontalSizeClass == .regular ? 40 : 100)
             .padding(.horizontal, horizontalSizeClass == .regular ? 32 : 0)
         }
-        .background(
-            Group {
-                if horizontalSizeClass == .regular {
-                    Color.clear
-                        .grassySurface(cornerRadius: 0)
-                }
-            }
-        )
+        .background(Color(UIColor.systemBackground))
         .onAppear {
             fetchStats()
         }
@@ -208,8 +201,7 @@ extension TodayView {
             }
         }
         .padding()
-        .background(Color(UIColor.secondarySystemBackground))
-        .cornerRadius(15)
+        .grassyCard(cornerRadius: 15)
         .walkthroughAnchor(.calendar) // Attached to calendar card
         .padding(.horizontal)
     }
@@ -346,7 +338,6 @@ struct SummaryCard: View {
         }
         .padding()
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color(UIColor.secondarySystemBackground))
-        .cornerRadius(12)
+        .grassyCard(cornerRadius: 12)
     }
 }

@@ -25,7 +25,7 @@ struct GrassySurfaceModifier: ViewModifier {
                     if isIPad {
                         // Material background - Force white for clean grassy aesthetic
                         RoundedRectangle(cornerRadius: cornerRadius)
-                            .fill(Color.white)
+                            .fill(Color(UIColor.systemBackground))
                         
                         // Soft organic gradient overlay
                         LinearGradient(
