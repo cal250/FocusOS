@@ -8,9 +8,11 @@ struct iPadSidebarView: View {
         VStack(alignment: .leading, spacing: 0) {
             // App Logo/Name
             VStack(alignment: .leading, spacing: 8) {
-                Image(systemName: "brain.head.profile")
-                    .font(.system(size: 36, weight: .medium))
-                    .foregroundColor(.blue)
+                Image("g8 (5)")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 48, height: 48)
+                    .cornerRadius(8)
                 
                 Text("FocusOS")
                     .font(.system(size: 24, weight: .bold, design: .rounded))
