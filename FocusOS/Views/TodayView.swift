@@ -126,6 +126,7 @@ extension TodayView {
                     .font(.title)
                     .foregroundColor(.gray)
             }
+            .walkthroughAnchor(.accountIcon)
         }
         .padding(.horizontal)
         .padding(.top, 20)

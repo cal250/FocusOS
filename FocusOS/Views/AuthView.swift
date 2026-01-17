@@ -391,6 +391,7 @@ struct CustomTextField: View {
             if isSecure {
                 SecureField(placeholder, text: $text)
                     .font(.system(size: 15))
+                    .foregroundColor(.black)
                     .padding(.horizontal, 20)
                     .padding(.vertical, 16)
                     .background(
@@ -400,6 +401,7 @@ struct CustomTextField: View {
             } else {
                 TextField(placeholder, text: $text)
                     .font(.system(size: 15))
+                    .foregroundColor(.black)
                     .padding(.horizontal, 20)
                     .padding(.vertical, 16)
                     .background(

@@ -54,6 +54,7 @@ struct FocusOSApp: App {
                         .transition(.opacity)
                 }
             }
+            .preferredColorScheme(.light)
             .onChange(of: supabaseManager.session) { _, newSession in
                 withAnimation {
                     if newSession == nil {

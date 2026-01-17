@@ -17,6 +17,7 @@ enum WalkthroughStep: Int, CaseIterable, Codable {
     // Feature Highlights (Navigate to them)
     case startFocus = 8
     case habitsSection = 9
+    case accountIcon = 10
     
     case completed = 99
     
@@ -34,6 +35,7 @@ enum WalkthroughStep: Int, CaseIterable, Codable {
             
         case .startFocus: return "Start Focusing"
         case .habitsSection: return "Track Habits"
+        case .accountIcon: return "Your Account"
         default: return ""
         }
     }
@@ -52,13 +54,14 @@ enum WalkthroughStep: Int, CaseIterable, Codable {
             
         case .startFocus: return "Tap this button to begin a new focus session."
         case .habitsSection: return "Log habits you want to break or build."
+        case .accountIcon: return "Manage your profile and sync your data across devices."
         default: return ""
         }
     }
     
     var requiredTab: Tab? {
         switch self {
-        case .calendar, .focusTimeCard, .sessionsCard, .productivityCard, .navToday: 
+        case .calendar, .focusTimeCard, .sessionsCard, .productivityCard, .navToday, .accountIcon: 
             return .today
         case .navHabits, .habitsSection: 
             return .habits
@@ -107,7 +110,7 @@ class WalkthroughManager: ObservableObject {
     func next() {
         // Logic to move to next step or complete
         let allSteps = WalkthroughStep.allCases.sorted(by: { $0.rawValue < $1.rawValue })
-        if let currentIndex = allSteps.firstIndex(of: currentStep), currentIndex + 1 < allSteps.count {
+        if let currentIndex = allSteps.firstIndex(of: currentStep), currentIndex + 1 <  allSteps.count {
             let nextStep = allSteps[currentIndex + 1]
             if nextStep == .completed {
                 complete()

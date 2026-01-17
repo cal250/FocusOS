@@ -142,7 +142,6 @@ struct HomeView: View {
                                 .fill(Color.blue)
                                 .frame(width: 80, height: 80)
                                 .shadow(color: Color.blue.opacity(0.4), radius: 15, x: 0, y: 10)
-                                .walkthroughAnchor(.startFocus)
                             
                             Image(systemName: "play.fill")
                                 .font(.system(size: 32, weight: .bold))
@@ -150,6 +149,7 @@ struct HomeView: View {
                                 .offset(x: 3) // Visual centering
                         }
                     }
+                    .walkthroughAnchor(.startFocus)
                 }
                 
                 Spacer()
