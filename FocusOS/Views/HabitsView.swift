@@ -29,99 +29,109 @@ struct HabitsView: View {
     var body: some View {
         let isIPad = horizontalSizeClass == .regular
         
-        NavigationView {
-            ZStack {
-                // Background
-                if isIPad {
-                    Color.clear
-                        .grassySurface(cornerRadius: 0)
-                        .edgesIgnoringSafeArea(.all)
+        Group {
+            if isIPad {
+                habitsContent
+            } else {
+                NavigationView {
+                    habitsContent
                 }
-                
-                List {
-                    Section(header: Text("Habits to Break")) {
-                        if habitsViewModel.habits.isEmpty && !habitsViewModel.isLoading {
-                            Text("No habits added yet.")
-                                .foregroundColor(.gray)
-                        } else {
-                            ForEach(habitsViewModel.habits) { habit in
-                                HStack {
-                                    Image(systemName: habit.icon)
-                                        .frame(width: 30)
-                                        .foregroundColor(.red)
-                                    Text(habit.name)
-                                        .fontWeight(.medium)
-                                }
-                            }
-                            .onDelete { indexSet in
-                                if let firstIndex = indexSet.first {
-                                    habitToDelete = habitsViewModel.habits[firstIndex]
-                                    showingDeleteConfirmation = true
-                                }
-                            }
-                        }
-                    }
-                    .walkthroughAnchor(.habitsSection)
-                    
-                    Section(header: Text("Distraction History")) {
-                        if allDistractions.isEmpty {
-                            Text("No distractions logged yet.")
-                                .foregroundColor(.gray)
-                        } else {
-                            ForEach(allDistractions) { distraction in
-                                HStack {
-                                    VStack(alignment: .leading) {
-                                        Text(distraction.description)
-                                            .font(.body)
-                                        Text(timeFormatter.string(from: distraction.timestamp))
-                                            .font(.caption)
-                                            .foregroundColor(.gray)
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-                .listStyle(.insetGrouped)
-                
-                if habitsViewModel.isLoading {
-                    ProgressView()
-                        .scaleEffect(1.5)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .background(Color.black.opacity(0.1))
-                }
+                .navigationViewStyle(StackNavigationViewStyle())
             }
-            .navigationTitle("Habits")
-            .navigationBarItems(trailing: Button(action: {
-                showingAddHabit = true
-            }) {
-                Image(systemName: "plus")
-                    .font(.body)
-            })
-            .sheet(isPresented: $showingAddHabit) {
-                AddHabitSheet { newHabit in
-                    habitsViewModel.addHabit(name: newHabit.name, icon: newHabit.icon)
-                }
-            }
-            .alert(isPresented: $showingDeleteConfirmation) {
-                Alert(
-                    title: Text("Have you broken this habit?"),
-                    message: Text("Removing this habit means you've successfully conquered it."),
-                    primaryButton: .destructive(Text("Yes, I broke it!")) {
-                        if let habit = habitToDelete {
-                            if let index = habitsViewModel.habits.firstIndex(where: { $0.id == habit.id }) {
-                                habitsViewModel.deleteHabit(at: IndexSet(integer: index))
-                            }
-                        }
-                        habitToDelete = nil
-                    },
-                    secondaryButton: .cancel() {
-                        habitToDelete = nil
-                    }
-                )
-            }
-            .padding(.bottom, 60) 
         }
-        .navigationViewStyle(StackNavigationViewStyle())
+    }
+    
+    private var habitsContent: some View {
+        ZStack {
+            // Background
+            if horizontalSizeClass == .regular {
+                Color.clear
+                    .grassySurface(cornerRadius: 0)
+                    .edgesIgnoringSafeArea(.all)
+            }
+            
+            List {
+                Section(header: Text("Habits to Break")) {
+                    if habitsViewModel.habits.isEmpty && !habitsViewModel.isLoading {
+                        Text("No habits added yet.")
+                            .foregroundColor(.gray)
+                    } else {
+                        ForEach(habitsViewModel.habits) { habit in
+                            HStack {
+                                Image(systemName: habit.icon)
+                                    .frame(width: 30)
+                                    .foregroundColor(.red)
+                                Text(habit.name)
+                                    .fontWeight(.medium)
+                            }
+                        }
+                        .onDelete { indexSet in
+                            if let firstIndex = indexSet.first {
+                                habitToDelete = habitsViewModel.habits[firstIndex]
+                                showingDeleteConfirmation = true
+                            }
+                        }
+                    }
+                }
+                .walkthroughAnchor(.habitsSection)
+                
+                Section(header: Text("Distraction History")) {
+                    if allDistractions.isEmpty {
+                        Text("No distractions logged yet.")
+                            .foregroundColor(.gray)
+                    } else {
+                        ForEach(allDistractions) { distraction in
+                            HStack {
+                                VStack(alignment: .leading) {
+                                    Text(distraction.description)
+                                        .font(.body)
+                                    Text(timeFormatter.string(from: distraction.timestamp))
+                                        .font(.caption)
+                                        .foregroundColor(.gray)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            .listStyle(.insetGrouped)
+            
+            if habitsViewModel.isLoading {
+                ProgressView()
+                    .scaleEffect(1.5)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .background(Color.black.opacity(0.1))
+            }
+        }
+        .navigationTitle("Habits")
+        .navigationBarItems(trailing: Button(action: {
+            showingAddHabit = true
+        }) {
+            Image(systemName: "plus")
+                .font(.body)
+        })
+        .sheet(isPresented: $showingAddHabit) {
+            AddHabitSheet { newHabit in
+                habitsViewModel.addHabit(name: newHabit.name, icon: newHabit.icon)
+            }
+        }
+        .alert(isPresented: $showingDeleteConfirmation) {
+            Alert(
+                title: Text("Have you broken this habit?"),
+                message: Text("Removing this habit means you've successfully conquered it."),
+                primaryButton: .destructive(Text("Yes, I broke it!")) {
+                    if let habit = habitToDelete {
+                        if let index = habitsViewModel.habits.firstIndex(where: { $0.id == habit.id }) {
+                            habitsViewModel.deleteHabit(at: IndexSet(integer: index))
+                        }
+                    }
+                    habitToDelete = nil
+                },
+                secondaryButton: .cancel() {
+                    habitToDelete = nil
+                }
+            )
+        }
+        .padding(.bottom, 60)
     }
 }

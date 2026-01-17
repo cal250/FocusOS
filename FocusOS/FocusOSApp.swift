@@ -13,6 +13,7 @@ struct FocusOSApp: App {
     @StateObject private var habitsViewModel = HabitsViewModel()
     @StateObject private var supabaseManager = SupabaseManager.shared
     @State private var appPhase: AppPhase = .splash
+    @AppStorage("isDarkMode") private var isDarkMode = false
     
     var body: some Scene {
         WindowGroup {
@@ -54,7 +55,7 @@ struct FocusOSApp: App {
                         .transition(.opacity)
                 }
             }
-            .preferredColorScheme(.light)
+            .preferredColorScheme(isDarkMode ? .dark : .light)
             .onChange(of: supabaseManager.session) { _, newSession in
                 withAnimation {
                     if newSession == nil {

@@ -14,6 +14,8 @@ struct AccountView: View {
     @State private var exportDocument: ExportDocument?
     @ObservedObject private var supabaseManager = SupabaseManager.shared
     
+    @Environment(\.presentationMode) var presentationMode
+    
     var body: some View {
         ScrollView {
             VStack(spacing: 30) {
@@ -196,6 +198,24 @@ struct AccountView: View {
         }
         .navigationTitle("Account")
         .navigationBarTitleDisplayMode(.inline)
+        .navigationBarHidden(false)
+        .navigationBarBackButtonHidden(true)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarLeading) {
+                Button(action: {
+                    HapticManager.shared.playImpact(style: .light)
+                    presentationMode.wrappedValue.dismiss()
+                }) {
+                    Image(systemName: "chevron.left")
+                        .font(.system(size: 18, weight: .bold))
+                        .foregroundColor(.secondary)
+                        .frame(width: 38, height: 38)
+                        .background(.ultraThinMaterial)
+                        .clipShape(Circle())
+                        .grassyGlow(isActive: true, cornerRadius: 19)
+                }
+            }
+        }
         .background(Color(UIColor.systemBackground))
         .alert("Clear All Data", isPresented: $showingClearDataAlert) {
             Button("Cancel", role: .cancel) { }

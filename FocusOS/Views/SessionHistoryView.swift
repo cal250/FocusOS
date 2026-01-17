@@ -2,6 +2,7 @@ import SwiftUI
 
 struct SessionHistoryView: View {
     @EnvironmentObject var viewModel: SessionViewModel
+    @Environment(\.presentationMode) var presentationMode
     
     var body: some View {
         ScrollView {
@@ -36,6 +37,24 @@ struct SessionHistoryView: View {
         }
         .navigationTitle("Session History")
         .navigationBarTitleDisplayMode(.large)
+        .navigationBarHidden(false)
+        .navigationBarBackButtonHidden(true)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarLeading) {
+                Button(action: {
+                    HapticManager.shared.playImpact(style: .light)
+                    presentationMode.wrappedValue.dismiss()
+                }) {
+                    Image(systemName: "chevron.left")
+                        .font(.system(size: 18, weight: .bold))
+                        .foregroundColor(.secondary)
+                        .frame(width: 38, height: 38)
+                        .background(.ultraThinMaterial)
+                        .clipShape(Circle())
+                        .grassyGlow(isActive: true, cornerRadius: 19)
+                }
+            }
+        }
         .background(Color(UIColor.systemBackground))
     }
     

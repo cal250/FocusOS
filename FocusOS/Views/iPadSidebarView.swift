@@ -90,6 +90,16 @@ struct SidebarNavigationItem: View {
             .cornerRadius(12)
         }
         .buttonStyle(PlainButtonStyle())
+        .walkthroughAnchor(anchor(for: tab))
+    }
+    
+    private func anchor(for tab: Tab) -> WalkthroughStep {
+        switch tab {
+        case .today: return .navToday
+        case .habits: return .navHabits
+        case .focus: return .navFocus
+        case .settings: return .navSettings
+        }
     }
 }
 

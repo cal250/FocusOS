@@ -11,16 +11,30 @@ struct SettingsView: View {
     var body: some View {
         let isIPad = horizontalSizeClass == .regular
         
-        NavigationView {
-            ZStack {
-                // Background
-                if isIPad {
-                    Color.clear
-                        .grassySurface(cornerRadius: 0)
-                        .edgesIgnoringSafeArea(.all)
+        Group {
+            if isIPad {
+                settingsContent
+            } else {
+                NavigationView {
+                    settingsContent
                 }
-                
-                List {
+                .navigationViewStyle(StackNavigationViewStyle())
+            }
+        }
+        // Force color scheme based on selection for demo
+        .preferredColorScheme(isDarkMode ? .dark : .light)
+    }
+    
+    private var settingsContent: some View {
+        ZStack {
+            // Background
+            if horizontalSizeClass == .regular {
+                Color.clear
+                    .grassySurface(cornerRadius: 0)
+                    .edgesIgnoringSafeArea(.all)
+            }
+            
+            List {
                 // Preferences Section
                 Section(header: Text("Preferences")) {
                     Toggle(isOn: $isDarkMode) {
@@ -121,15 +135,11 @@ struct SettingsView: View {
                     }
                     .padding(.vertical, 4)
                 }
-                }
-                .listStyle(.insetGrouped)
-                .navigationTitle("Settings")
-                // Apply padding to avoid overlap with custom tab bar
-                .padding(.bottom, 60)
             }
+            .listStyle(.insetGrouped)
+            .navigationTitle("Settings")
+            // Apply padding to avoid overlap with custom tab bar
+            .padding(.bottom, 60)
         }
-        .navigationViewStyle(StackNavigationViewStyle())
-        // Force color scheme based on selection for demo
-        .preferredColorScheme(isDarkMode ? .dark : .light)
     }
 }

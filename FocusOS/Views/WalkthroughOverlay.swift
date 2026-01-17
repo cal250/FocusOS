@@ -111,6 +111,30 @@ struct WalkthroughOverlay: View {
                         // Instructional Text & Controls
                         let isTopHalf = frame.midY < geometry.size.height / 2
                         
+                        // Calculate horizontal position - center on element for iPad, screen center for iPhone
+                        // Calculate horizontal position - center on element for iPad, screen center for iPhone
+                        let textX: CGFloat = {
+                            // Max width of text container is 320, so half width is 160
+                            let halfWidth: CGFloat = 160
+                            let padding: CGFloat = 20
+                            
+                            // Determine target X based on element position
+                            var targetX = frame.midX
+                            
+                            // If element is in sidebar (left side), shift right
+                            if frame.midX < geometry.size.width * 0.3 {
+                                targetX = frame.midX + 180
+                            }
+                            
+                            // Clamp to screen bounds
+                            // Ensure left edge >= padding (targetX - halfWidth >= padding => targetX >= halfWidth + padding)
+                            // Ensure right edge <= width - padding (targetX + halfWidth <= width - padding => targetX <= width - halfWidth - padding)
+                            let minX = halfWidth + padding
+                            let maxX = geometry.size.width - halfWidth - padding
+                            
+                            return min(max(targetX, minX), maxX)
+                        }()
+                        
                         VStack(spacing: 16) {
                             Text(manager.currentStep.title)
                                 .font(.title3)
@@ -152,7 +176,7 @@ struct WalkthroughOverlay: View {
                         .padding(24)
                         .frame(maxWidth: 320)
                         .position(
-                            x: geometry.size.width / 2,
+                            x: textX,
                             y: isTopHalf ? frame.maxY + 120 : frame.minY - 120
                         )
                     }

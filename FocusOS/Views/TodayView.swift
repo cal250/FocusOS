@@ -79,42 +79,52 @@ struct TodayView: View {
     var body: some View {
         let isIPad = horizontalSizeClass == .regular
         
-        NavigationView {
-            ScrollView {
-                VStack(spacing: 25) {
-                    headerView
-                    calendarView
-                    distractionIndicatorView
-                    summaryCardsView
-                    productivityCardView
-                    Spacer()
+        Group {
+            if isIPad {
+                todayContent
+            } else {
+                NavigationView {
+                    todayContent
                 }
-                .padding(.bottom, isIPad ? 40 : 100)
-                .padding(.horizontal, isIPad ? 32 : 0)
+                .navigationViewStyle(StackNavigationViewStyle())
             }
-            .background(
-                Group {
-                    if isIPad {
-                        Color.clear
-                            .grassySurface(cornerRadius: 0)
-                    }
-                }
-            )
-            .onAppear {
-                fetchStats()
-            }
-            .onChange(of: selectedDay) {
-                fetchStats()
-            }
-            .onChange(of: supabaseManager.currentUser) {
-                fetchStats()
-            }
-            .onChange(of: viewModel.pastSessions.count) {
-                fetchStats()
-            }
-            .navigationBarHidden(true)
         }
-        .navigationViewStyle(StackNavigationViewStyle())
+    }
+    
+    private var todayContent: some View {
+        ScrollView {
+            VStack(spacing: 25) {
+                headerView
+                calendarView
+                distractionIndicatorView
+                summaryCardsView
+                productivityCardView
+                Spacer()
+            }
+            .padding(.bottom, horizontalSizeClass == .regular ? 40 : 100)
+            .padding(.horizontal, horizontalSizeClass == .regular ? 32 : 0)
+        }
+        .background(
+            Group {
+                if horizontalSizeClass == .regular {
+                    Color.clear
+                        .grassySurface(cornerRadius: 0)
+                }
+            }
+        )
+        .onAppear {
+            fetchStats()
+        }
+        .onChange(of: selectedDay) {
+            fetchStats()
+        }
+        .onChange(of: supabaseManager.currentUser) {
+            fetchStats()
+        }
+        .onChange(of: viewModel.pastSessions.count) {
+            fetchStats()
+        }
+        .navigationBarHidden(true)
     }
 }
 

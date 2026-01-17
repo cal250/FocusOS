@@ -23,9 +23,9 @@ struct GrassySurfaceModifier: ViewModifier {
             .background(
                 ZStack {
                     if isIPad {
-                        // Material background
+                        // Material background - Force white for clean grassy aesthetic
                         RoundedRectangle(cornerRadius: cornerRadius)
-                            .fill(material)
+                            .fill(Color.white)
                         
                         // Soft organic gradient overlay
                         LinearGradient(
@@ -144,8 +144,8 @@ struct GrassyGlowModifier: ViewModifier {
                             .fill(
                                 LinearGradient(
                                     colors: [
-                                        Color.blue.opacity(0.15),
-                                        Color.green.opacity(0.10)
+                                        Color.green.opacity(0.18),
+                                        Color.teal.opacity(0.12)
                                     ],
                                     startPoint: .topLeading,
                                     endPoint: .bottomTrailing

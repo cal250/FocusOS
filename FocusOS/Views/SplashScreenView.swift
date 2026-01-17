@@ -68,7 +68,7 @@ struct SplashScreenView: View {
                     .font(.system(size: 32, weight: .bold, design: .rounded))
                     .foregroundColor(.white)
                     .opacity(textOpacity)
-                    .padding(.top, 40)
+                    .padding(.top, 20)
             }
         }
         .onAppear {

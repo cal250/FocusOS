@@ -38,16 +38,18 @@ struct MainTabView: View {
                 NavigationSplitView {
                     iPadSidebarView(selectedTab: $selectedTab)
                 } detail: {
-                    contentView(for: selectedTab)
-                        .overlay(
-                            WalkthroughOverlay(activeTab: $selectedTab, anchorFrames: anchorFrames)
-                                .edgesIgnoringSafeArea(.all)
-                        )
-                        .onPreferenceChange(WalkthroughAnchorKey.self) { preferences in
-                            self.anchorFrames = preferences
-                        }
+                    NavigationStack {
+                        contentView(for: selectedTab)
+                    }
                 }
                 .navigationSplitViewStyle(.balanced)
+                .overlay(
+                    WalkthroughOverlay(activeTab: $selectedTab, anchorFrames: anchorFrames)
+                        .edgesIgnoringSafeArea(.all)
+                )
+                .onPreferenceChange(WalkthroughAnchorKey.self) { preferences in
+                    self.anchorFrames = preferences
+                }
             } else {
                 // iPhone: Existing TabView + CustomTabBar (unchanged)
                 ZStack(alignment: .bottom) {
