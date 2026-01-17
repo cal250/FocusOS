@@ -6,6 +6,7 @@ struct TodayView: View {
     @Binding var activeTab: Tab
     @EnvironmentObject var viewModel: SessionViewModel
     @StateObject private var supabaseManager = SupabaseManager.shared
+    @Environment(\.horizontalSizeClass) var horizontalSizeClass
     
     // Real Data Logic
     private var calendar: Calendar { Calendar.current }
@@ -76,6 +77,8 @@ struct TodayView: View {
     }
     
     var body: some View {
+        let isIPad = horizontalSizeClass == .regular
+        
         NavigationView {
             ScrollView {
                 VStack(spacing: 25) {
@@ -86,8 +89,17 @@ struct TodayView: View {
                     productivityCardView
                     Spacer()
                 }
-                .padding(.bottom, 100)
+                .padding(.bottom, isIPad ? 40 : 100)
+                .padding(.horizontal, isIPad ? 32 : 0)
             }
+            .background(
+                Group {
+                    if isIPad {
+                        Color.clear
+                            .grassySurface(cornerRadius: 0)
+                    }
+                }
+            )
             .onAppear {
                 fetchStats()
             }

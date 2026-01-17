@@ -2,6 +2,7 @@ import SwiftUI
 
 struct HomeView: View {
     @EnvironmentObject var viewModel: SessionViewModel
+    @Environment(\.horizontalSizeClass) var horizontalSizeClass
     @State private var showingLogger = false
     @State private var showingIntentionSheet = false
     @State private var rotation: Double = 0
@@ -27,8 +28,17 @@ struct HomeView: View {
     )
     
     var body: some View {
+        let isIPad = horizontalSizeClass == .regular
+        
         ZStack {
-            Color(UIColor.systemBackground).edgesIgnoringSafeArea(.all)
+            // Background
+            if isIPad {
+                Color.clear
+                    .grassySurface(cornerRadius: 0)
+                    .edgesIgnoringSafeArea(.all)
+            } else {
+                Color(UIColor.systemBackground).edgesIgnoringSafeArea(.all)
+            }
             
             VStack(spacing: 40) {
                 // Header

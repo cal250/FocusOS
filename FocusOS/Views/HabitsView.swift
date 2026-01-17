@@ -3,6 +3,7 @@ import SwiftUI
 struct HabitsView: View {
     @EnvironmentObject var habitsViewModel: HabitsViewModel
     @EnvironmentObject var viewModel: SessionViewModel
+    @Environment(\.horizontalSizeClass) var horizontalSizeClass
     
     var allDistractions: [Distraction] {
         var distractions = viewModel.pastSessions.flatMap { $0.distractions }
@@ -26,8 +27,17 @@ struct HabitsView: View {
     }()
     
     var body: some View {
+        let isIPad = horizontalSizeClass == .regular
+        
         NavigationView {
             ZStack {
+                // Background
+                if isIPad {
+                    Color.clear
+                        .grassySurface(cornerRadius: 0)
+                        .edgesIgnoringSafeArea(.all)
+                }
+                
                 List {
                     Section(header: Text("Habits to Break")) {
                         if habitsViewModel.habits.isEmpty && !habitsViewModel.isLoading {

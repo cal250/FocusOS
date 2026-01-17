@@ -21,40 +21,80 @@ struct MainTabView: View {
     @StateObject private var walkthroughManager = WalkthroughManager.shared
     @State private var anchorFrames: [WalkthroughStep: CGRect] = [:]
     
+    @Environment(\.horizontalSizeClass) var horizontalSizeClass
+    @EnvironmentObject var sessionViewModel: SessionViewModel
+    
     // Hide default tab bar
     init() {
         UITabBar.appearance().isHidden = true
     }
     
     var body: some View {
-        ZStack(alignment: .bottom) {
-            // Main Content
-            TabView(selection: $selectedTab) {
-                TodayView(activeTab: $selectedTab)
-                    .tag(Tab.today)
-                
-                HabitsView()
-                    .tag(Tab.habits)
-                
-                HomeView()
-                    .tag(Tab.focus)
-                
-                SettingsView()
-                    .tag(Tab.settings)
+        let isIPad = horizontalSizeClass == .regular
+        
+        Group {
+            if isIPad {
+                // iPad: NavigationSplitView with persistent sidebar
+                NavigationSplitView {
+                    iPadSidebarView(selectedTab: $selectedTab)
+                } detail: {
+                    contentView(for: selectedTab)
+                        .overlay(
+                            WalkthroughOverlay(activeTab: $selectedTab, anchorFrames: anchorFrames)
+                                .edgesIgnoringSafeArea(.all)
+                        )
+                        .onPreferenceChange(WalkthroughAnchorKey.self) { preferences in
+                            self.anchorFrames = preferences
+                        }
+                }
+                .navigationSplitViewStyle(.balanced)
+            } else {
+                // iPhone: Existing TabView + CustomTabBar (unchanged)
+                ZStack(alignment: .bottom) {
+                    // Main Content
+                    TabView(selection: $selectedTab) {
+                        TodayView(activeTab: $selectedTab)
+                            .tag(Tab.today)
+                        
+                        HabitsView()
+                            .tag(Tab.habits)
+                        
+                        HomeView()
+                            .tag(Tab.focus)
+                        
+                        SettingsView()
+                            .tag(Tab.settings)
+                    }
+                    
+                    // Custom Tab Bar
+                    CustomTabBar(selectedTab: $selectedTab)
+                }
+                .edgesIgnoringSafeArea(.bottom)
+                .persistentSystemOverlays(.hidden)
+                .overlay(
+                    WalkthroughOverlay(activeTab: $selectedTab, anchorFrames: anchorFrames)
+                        .edgesIgnoringSafeArea(.all)
+                )
+                .onPreferenceChange(WalkthroughAnchorKey.self) { preferences in
+                    self.anchorFrames = preferences
+                }
             }
-            // Block touch from underlying tab view UI if needed, usually not an issue with hidden appearance
-            
-            // Custom Tab Bar
-            CustomTabBar(selectedTab: $selectedTab)
         }
-        .edgesIgnoringSafeArea(.bottom)
-        .persistentSystemOverlays(.hidden)
-        .overlay(
-            WalkthroughOverlay(activeTab: $selectedTab, anchorFrames: anchorFrames)
-                .edgesIgnoringSafeArea(.all)
-        )
-        .onPreferenceChange(WalkthroughAnchorKey.self) { preferences in
-            self.anchorFrames = preferences
+    }
+    
+    // MARK: - Content View Helper
+    
+    @ViewBuilder
+    private func contentView(for tab: Tab) -> some View {
+        switch tab {
+        case .today:
+            TodayView(activeTab: $selectedTab)
+        case .habits:
+            HabitsView()
+        case .focus:
+            HomeView()
+        case .settings:
+            SettingsView()
         }
     }
 }
