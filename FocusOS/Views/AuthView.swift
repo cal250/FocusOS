@@ -16,6 +16,7 @@ struct AuthView: View {
     @State private var errorMessage = ""
     @State private var showError = false
     @State private var showingTerms = false
+    @State private var contentHeight: CGFloat = 0
     
     var body: some View {
         ZStack {
@@ -25,220 +26,83 @@ struct AuthView: View {
                 .scaledToFill()
                 .ignoresSafeArea()
             
-            // Content Card
-            VStack(spacing: 0) {
-                // Top spacer to show background
-                Spacer()
-                    .frame(height: 100)
-                
-                VStack(spacing: 25) {
-                    // Header
-                    VStack(spacing: 8) {
-                        Text(isSignUp ? "Get Started!" : "Welcome!")
-                            .font(.system(size: 32, weight: .bold, design: .rounded))
-                            .foregroundColor(Color(red: 0.25, green: 0.45, blue: 0.85))
-                        
-                        HStack(spacing: 4) {
-                            Text(isSignUp ? "Already have an account?" : "Don't have an account?")
-                                .font(.subheadline)
-                                .foregroundColor(.secondary)
-                            
-                            Button(action: {
-                                withAnimation(.spring()) {
-                                    isSignUp.toggle()
-                                }
-                            }) {
-                                Text(isSignUp ? "Login" : "Sign Up")
-                                    .font(.subheadline)
-                                    .fontWeight(.semibold)
-                                    .foregroundColor(Color(red: 0.25, green: 0.45, blue: 0.85))
+            if UIDevice.current.userInterfaceIdiom == .pad {
+                GeometryReader { geometry in
+                    ZStack {
+                        ScrollView(showsIndicators: false) {
+                            VStack(spacing: 25) {
+                                formContent
                             }
-                        }
-                    }
-                    .padding(.top, 40)
-                    
-                    // Form Fields
-                    VStack(spacing: 16) {
-                        if isSignUp {
-                            CustomTextField(
-                                icon: "person",
-                                placeholder: "Enter Full Name",
-                                text: $fullName,
-                                label: "Full Name"
+                            .padding(.top, 25)
+                            .padding(.horizontal, 40)
+                            .padding(.bottom, 25)
+                            .background(
+                                GeometryReader { geo in
+                                    Color.clear
+                                        .preference(key: SizePreferenceKey.self, value: geo.size.height)
+                                }
                             )
                         }
-                        
-                        CustomTextField(
-                            icon: "envelope",
-                            placeholder: "Enter Email Address",
-                            text: $email,
-                            label: "Email Address"
-                        )
-                        .textInputAutocapitalization(.never)
-                        .keyboardType(.emailAddress)
-                        
-                        CustomTextField(
-                            icon: "lock",
-                            placeholder: "Enter Password",
-                            text: $password,
-                            label: "Password",
-                            isSecure: true
-                        )
-                        
-                        if isSignUp {
-                            HStack(spacing: 8) {
-                                Button(action: {
-                                    agreeToTerms.toggle()
-                                }) {
-                                    Image(systemName: agreeToTerms ? "checkmark.square.fill" : "square")
-                                        .foregroundColor(agreeToTerms ? Color(red: 0.25, green: 0.45, blue: 0.85) : .gray)
-                                }
-                                
-                                    Text("I agree to")
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
-                                    
-                                    Button(action: {
-                                        showingTerms = true
-                                    }) {
-                                        Text("Terms and Conditions")
-                                            .font(.caption)
-                                            .fontWeight(.medium)
-                                            .foregroundColor(Color(red: 0.25, green: 0.45, blue: 0.85))
-                                    }
-                                
-                                Spacer()
-                            }
-                            .padding(.horizontal, 4)
-                        } else {
-                            HStack {
-                                Button(action: {
-                                    rememberMe.toggle()
-                                }) {
-                                    HStack(spacing: 8) {
-                                        Image(systemName: rememberMe ? "checkmark.square.fill" : "square")
-                                            .foregroundColor(rememberMe ? Color(red: 0.25, green: 0.45, blue: 0.85) : .gray)
-                                        
-                                        Text("Remember me")
-                                            .font(.caption)
-                                            .foregroundColor(.secondary)
-                                    }
-                                }
-                                
-                                Spacer()
-                                
-                                Button(action: {
-                                    // Forgot password action
-                                }) {
-                                    Text("Forgot password?")
-                                        .font(.caption)
-                                        .fontWeight(.medium)
-                                        .foregroundColor(Color(red: 0.25, green: 0.45, blue: 0.85))
-                                }
-                            }
-                            .padding(.horizontal, 4)
+                    }
+                    .frame(width: 450)
+                    // Dynamic height: Content height but capped at 80% screen
+                    // Dynamic height: Content height but capped at 90% screen to allow more space
+                    .frame(height: contentHeight > 0 ? min(contentHeight, geometry.size.height * 0.9) : min(600, geometry.size.height * 0.9))
+                    .background(Color.white)
+                    .cornerRadius(24)
+                    .shadow(color: Color.black.opacity(0.15), radius: 30, x: 0, y: 10)
+                    // Center in the screen
+                    .position(x: geometry.size.width / 2, y: geometry.size.height / 2)
+                    .opacity(isAppeared ? 1 : 0)
+                    .scaleEffect(isAppeared ? 1 : 0.9)
+                    .onPreferenceChange(SizePreferenceKey.self) { height in
+                        withAnimation {
+                            contentHeight = height
                         }
                     }
-                    
-                    // Main Action Button
-                    Button(action: {
-                        Task {
-                            isLoading = true
-                            // Sanitize inputs
-                            let cleanEmail = email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-                            let cleanPassword = password.trimmingCharacters(in: .whitespacesAndNewlines)
-                            let cleanFullName = fullName.trimmingCharacters(in: .whitespacesAndNewlines)
-                            
-                            do {
-                                if isSignUp {
-                                    try await SupabaseManager.shared.signUp(
-                                        email: cleanEmail,
-                                        password: cleanPassword,
-                                        fullName: cleanFullName
-                                    )
-                                } else {
-                                    try await SupabaseManager.shared.signIn(
-                                        email: cleanEmail,
-                                        password: cleanPassword
-                                    )
-                                }
-                                onComplete(isSignUp)
-                            } catch {
-                                errorMessage = error.localizedDescription
-                                showError = true
-                            }
-                            isLoading = false
-                        }
-                    }) {
-                        if isLoading {
-                            ProgressView()
-                                .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                                .frame(maxWidth: .infinity)
-                                .padding()
-                        } else {
-                            Text(isSignUp ? "Sign Up" : "Login")
-                                .font(.headline)
-                                .foregroundColor(.white)
-                                .frame(maxWidth: .infinity)
-                                .padding()
-                        }
-                    }
-                    .background(Color(red: 0.25, green: 0.45, blue: 0.85))
-                    .cornerRadius(12)
-                    .disabled(isLoading || (isSignUp && !agreeToTerms))
-                    .opacity((isLoading || (isSignUp && !agreeToTerms)) ? 0.6 : 1.0)
-                    .alert("Authentication Issue", isPresented: $showError) {
-                        Button("OK", role: .cancel) { }
-                    } message: {
-                        Text(errorMessage)
-                    }
-                    
-                    // Social Login Section (Now on both screens)
-                    VStack(spacing: 20) {
-                        HStack {
-                            Rectangle()
-                                .frame(height: 1)
-                                .foregroundColor(Color.gray.opacity(0.15))
-                            Text(isSignUp ? "Or sign up with" : "Or log in with")
-                                .font(.system(size: 12, weight: .regular, design: .rounded))
-                                .foregroundColor(.secondary)
-                                .lineLimit(1)
-                                .padding(.horizontal, 10)
-                            Rectangle()
-                                .frame(height: 1)
-                                .foregroundColor(Color.gray.opacity(0.15))
-                        }
-                        .padding(.vertical, 10)
-                        
-                        HStack(spacing: 16) {
-                            SocialButton(icon: "apple.logo", text: "Apple", color: .black) {
-                                handleOAuthSignIn(provider: .apple)
-                            }
-                            SocialButton(imagePath: "/Users/calvin/.gemini/antigravity/brain/d9e6cae9-a606-4f26-839f-153919a23c87/google_logo_1767811237808.png", text: "Google") {
-                                handleOAuthSignIn(provider: .google)
-                            }
-                        }
-                    }
-                    
-                    Spacer()
                 }
-                .padding(.horizontal, 40)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(Color.white)
-                .clipShape(
-                    UnevenRoundedRectangle(
-                        topLeadingRadius: 100,
-                        bottomLeadingRadius: 0,
-                        bottomTrailingRadius: 0,
-                        topTrailingRadius: 100
-                    )
-                )
-                .shadow(color: Color.black.opacity(0.08), radius: 12, x: 0, y: -5)
+            } else {
+                // iPhone Layout: Bottom Sheet
+                GeometryReader { geometry in
+                    VStack(spacing: 0) {
+                        ScrollView(showsIndicators: false) {
+                            VStack(spacing: 0) {
+                                // Top spacer to show background
+                                Spacer()
+                                    .frame(height: 100)
+                                
+                                VStack(spacing: 25) {
+                                    formContent
+                                }
+                                .padding(.horizontal, 40)
+                                .padding(.bottom, 50) // Padding for content
+                                .frame(minHeight: geometry.size.height - 100, alignment: .top)
+                                .background(Color.white)
+                                .clipShape(
+                                    UnevenRoundedRectangle(
+                                        topLeadingRadius: 100,
+                                        bottomLeadingRadius: 0,
+                                        bottomTrailingRadius: 0,
+                                        topTrailingRadius: 100
+                                    )
+                                )
+                                .shadow(color: Color.black.opacity(0.08), radius: 12, x: 0, y: -5)
+                            }
+                        }
+                        .background(
+                            VStack {
+                                Spacer().frame(height: 200) // 100pt spacer + 100pt curve radius
+                                Color.white
+                            }
+                            .ignoresSafeArea(edges: .bottom)
+                        )
+                    }
+                }
                 .ignoresSafeArea(edges: .bottom)
                 .offset(y: isAppeared ? 0 : UIScreen.main.bounds.height)
             }
         }
-        .sheet(isPresented: $showingTerms) {
+        .fullScreenCover(isPresented: $showingTerms) {
             TermsAndConditionsView(onAccept: {
                 agreeToTerms = true
             })
@@ -248,6 +112,200 @@ struct AuthView: View {
                 isAppeared = true
             }
         }
+    }
+    
+    // MARK: - Reusable Form Content
+    
+    @ViewBuilder
+    private var formContent: some View {
+        // Header
+        VStack(spacing: 8) {
+            Text(isSignUp ? "Get Started!" : "Welcome!")
+                .font(.system(size: 32, weight: .bold, design: .rounded))
+                .foregroundColor(Color(red: 0.25, green: 0.45, blue: 0.85))
+            
+            HStack(spacing: 4) {
+                Text(isSignUp ? "Already have an account?" : "Don't have an account?")
+                    .font(.subheadline)
+                    .foregroundColor(Color.gray)
+                
+                Button(action: {
+                    withAnimation(.spring()) {
+                        isSignUp.toggle()
+                    }
+                }) {
+                    Text(isSignUp ? "Login" : "Sign Up")
+                        .font(.subheadline)
+                        .fontWeight(.semibold)
+                        .foregroundColor(Color(red: 0.25, green: 0.45, blue: 0.85))
+                }
+            }
+        }
+        .padding(.top, UIDevice.current.userInterfaceIdiom == .pad ? 0 : 40)
+        
+        // Form Fields
+        VStack(spacing: 16) {
+            if isSignUp {
+                CustomTextField(
+                    icon: "person",
+                    placeholder: "Enter Full Name",
+                    text: $fullName,
+                    label: "Full Name"
+                )
+            }
+            
+            CustomTextField(
+                icon: "envelope",
+                placeholder: "Enter Email Address",
+                text: $email,
+                label: "Email Address"
+            )
+            .textInputAutocapitalization(.never)
+            .keyboardType(.emailAddress)
+            
+            CustomTextField(
+                icon: "lock",
+                placeholder: "Enter Password",
+                text: $password,
+                label: "Password",
+                isSecure: true
+            )
+            
+            if isSignUp {
+                HStack(spacing: 8) {
+                    Button(action: {
+                        agreeToTerms.toggle()
+                    }) {
+                        Image(systemName: agreeToTerms ? "checkmark.square.fill" : "square")
+                            .foregroundColor(agreeToTerms ? Color(red: 0.25, green: 0.45, blue: 0.85) : .gray)
+                    }
+                    
+                    Text("I agree to")
+                        .font(.caption)
+                        .foregroundColor(Color.gray)
+                    
+                    Button(action: {
+                        showingTerms = true
+                    }) {
+                        Text("Terms and Conditions")
+                            .font(.caption)
+                            .fontWeight(.medium)
+                            .foregroundColor(Color(red: 0.25, green: 0.45, blue: 0.85))
+                    }
+                    
+                    Spacer()
+                }
+                .padding(.horizontal, 4)
+            } else {
+                HStack {
+                    Button(action: {
+                        rememberMe.toggle()
+                    }) {
+                        HStack(spacing: 8) {
+                            Image(systemName: rememberMe ? "checkmark.square.fill" : "square")
+                                .foregroundColor(rememberMe ? Color(red: 0.25, green: 0.45, blue: 0.85) : .gray)
+                            
+                            Text("Remember me")
+                                .font(.caption)
+                                .foregroundColor(Color.gray)
+                        }
+                    }
+                    
+                    Spacer()
+                    
+                    Button(action: {
+                        // Forgot password action
+                    }) {
+                        Text("Forgot password?")
+                            .font(.caption)
+                            .fontWeight(.medium)
+                            .foregroundColor(Color(red: 0.25, green: 0.45, blue: 0.85))
+                    }
+                }
+                .padding(.horizontal, 4)
+            }
+        }
+        
+        // Main Action Button
+        Button(action: {
+            Task {
+                isLoading = true
+                // Sanitize inputs
+                let cleanEmail = email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+                let cleanPassword = password.trimmingCharacters(in: .whitespacesAndNewlines)
+                let cleanFullName = fullName.trimmingCharacters(in: .whitespacesAndNewlines)
+                
+                do {
+                    if isSignUp {
+                        try await SupabaseManager.shared.signUp(
+                            email: cleanEmail,
+                            password: cleanPassword,
+                            fullName: cleanFullName
+                        )
+                    } else {
+                        try await SupabaseManager.shared.signIn(
+                            email: cleanEmail,
+                            password: cleanPassword
+                        )
+                    }
+                    onComplete(isSignUp)
+                } catch {
+                    errorMessage = error.localizedDescription
+                    showError = true
+                }
+                isLoading = false
+            }
+        }) {
+            if isLoading {
+                ProgressView()
+                    .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                    .frame(maxWidth: .infinity)
+                    .padding()
+            } else {
+                Text(isSignUp ? "Sign Up" : "Login")
+                    .font(.headline)
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding()
+            }
+        }
+        .background(Color(red: 0.25, green: 0.45, blue: 0.85))
+        .cornerRadius(12)
+        .disabled(isLoading || (isSignUp && !agreeToTerms))
+        .opacity((isLoading || (isSignUp && !agreeToTerms)) ? 0.6 : 1.0)
+        .alert("Authentication Issue", isPresented: $showError) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text(errorMessage)
+        }
+        
+        // Social Login Section (Now on both screens)
+        VStack(spacing: 20) {
+            HStack {
+                Rectangle()
+                    .frame(height: 1)
+                    .foregroundColor(Color.gray.opacity(0.15))
+                Text(isSignUp ? "Or sign up with" : "Or log in with")
+                    .font(.system(size: 12, weight: .regular, design: .rounded))
+                    .foregroundColor(Color.gray)
+                    .lineLimit(1)
+                    .padding(.horizontal, 10)
+                Rectangle()
+                    .frame(height: 1)
+                    .foregroundColor(Color.gray.opacity(0.15))
+            }
+            .padding(.vertical, 10)
+            
+            HStack(spacing: 16) {
+                SocialButton(icon: "apple.logo", text: "Apple", color: .black) {
+                    handleOAuthSignIn(provider: .apple)
+                }
+                SocialButton(imageUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/Google_\"G\"_logo.svg/1200px-Google_\"G\"_logo.svg.png", text: "Google") {
+                    handleOAuthSignIn(provider: .google)
+                }
+            }
+        }
+        
     }
     
     // MARK: - OAuth Handler
@@ -303,6 +361,13 @@ class AuthPresentationContextProvider: NSObject, ASWebAuthenticationPresentation
     }
 }
 
+struct SizePreferenceKey: PreferenceKey {
+    static var defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = nextValue()
+    }
+}
+
 // MARK: - Custom TextField
 
 struct CustomTextField: View {
@@ -351,7 +416,7 @@ struct CustomTextField: View {
 
 struct SocialButton: View {
     var icon: String? = nil
-    var imagePath: String? = nil
+    var imageUrl: String? = nil
     var text: String? = nil
     var color: Color = .black
     var action: () -> Void
@@ -360,11 +425,28 @@ struct SocialButton: View {
         Button(action: action) {
             HStack(spacing: 10) {
                 Group {
-                    if let imagePath = imagePath, let uiImage = UIImage(contentsOfFile: imagePath) {
-                        Image(uiImage: uiImage)
-                            .resizable()
-                            .scaledToFit()
-                            .frame(width: 20, height: 20)
+                    if let imageUrl = imageUrl, let url = URL(string: imageUrl) {
+                        AsyncImage(url: url) { phase in
+                            switch phase {
+                            case .success(let image):
+                                image
+                                    .resizable()
+                                    .scaledToFit()
+                                    .frame(width: 20, height: 20)
+                            case .failure(_), .empty:
+                                if let icon = icon {
+                                    Image(systemName: icon)
+                                        .font(.system(size: 20))
+                                        .foregroundColor(color)
+                                } else {
+                                    Image(systemName: "g.circle.fill")
+                                        .font(.system(size: 20))
+                                        .foregroundColor(.blue)
+                                }
+                            @unknown default:
+                                EmptyView()
+                            }
+                        }
                     } else if let icon = icon {
                         Image(systemName: icon)
                             .font(.system(size: 20))
