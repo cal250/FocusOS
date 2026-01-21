@@ -22,7 +22,7 @@ struct HabitsView: View {
         let formatter = DateFormatter()
         formatter.timeStyle = .short
         formatter.dateStyle = .short // Added date context
-        formatter.doesRelativeDateFormatting = true 
+        formatter.doesRelativeDateFormatting = true
         return formatter
     }()
     
@@ -44,11 +44,6 @@ struct HabitsView: View {
     private var habitsContent: some View {
         ZStack {
             // Background
-            if horizontalSizeClass == .regular {
-                Color.clear
-                    .grassySurface(cornerRadius: 0)
-                    .edgesIgnoringSafeArea(.all)
-            }
             
             List {
                 Section(header: Text("Habits to Break")) {
@@ -95,6 +90,8 @@ struct HabitsView: View {
                 }
             }
             .listStyle(.insetGrouped)
+            .scrollContentBackground(.hidden)
+            .background(Color(UIColor.systemGroupedBackground).edgesIgnoringSafeArea(.all))
             
             if habitsViewModel.isLoading {
                 ProgressView()
@@ -134,4 +131,5 @@ struct HabitsView: View {
         }
         .padding(.bottom, 60)
     }
+    
 }

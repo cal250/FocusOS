@@ -28,11 +28,6 @@ struct SettingsView: View {
     private var settingsContent: some View {
         ZStack {
             // Background
-            if horizontalSizeClass == .regular {
-                Color.clear
-                    .grassySurface(cornerRadius: 0)
-                    .edgesIgnoringSafeArea(.all)
-            }
             
             List {
                 // Preferences Section
@@ -137,6 +132,8 @@ struct SettingsView: View {
                 }
             }
             .listStyle(.insetGrouped)
+            .scrollContentBackground(.hidden)
+            .background(Color(UIColor.systemGroupedBackground).edgesIgnoringSafeArea(.all))
             .navigationTitle("Settings")
             // Apply padding to avoid overlap with custom tab bar
             .padding(.bottom, 60)

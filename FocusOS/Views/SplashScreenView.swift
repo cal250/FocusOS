@@ -31,12 +31,14 @@ struct SplashScreenView: View {
                     ZStack(alignment: .bottom) {
                         Wave(phase: wavePhase, strength: 20)
                             .fill(Color.white)
-                            .frame(width: 400, height: 200) // Adjust size as needed
+                            .frame(minWidth: 0, maxWidth: .infinity)
+                            .frame(height: 200)
                             .offset(y: waveOffset)
                             .opacity(waveOpacity)
                     }
                     .frame(height: 150) // Interaction area
                     .clipped() // Clip if needed, but we want it coming from bottom
+                    .edgesIgnoringSafeArea(.horizontal)
 
                     // Ripples (Diffraction)
                     ZStack {

@@ -18,6 +18,7 @@ struct TodayView: View {
     
     // Supabase Stats State
     @State private var dailyStat: DailyStat?
+    @State private var historicalStats: [DailyStat] = []
     @State private var isLoadingStats = false
     
     private var currentDay: Int {
@@ -35,6 +36,23 @@ struct TodayView: View {
     }
     
     // Data Helpers
+    func fetchHistoricalStats() {
+        // Fetch past 120 days
+        let endDate = Date()
+        guard let startDate = calendar.date(byAdding: .day, value: -120, to: endDate) else { return }
+        
+        Task {
+            do {
+                let stats = try await SupabaseManager.shared.fetchStatsRange(startDate: startDate, endDate: endDate)
+                await MainActor.run {
+                    self.historicalStats = stats
+                }
+            } catch {
+                print("TodayView: Failed to fetch historical stats - \(error.localizedDescription)")
+            }
+        }
+    }
+
     func fetchStats() {
         let selectedDateComponents = DateComponents(year: calendar.component(.year, from: today),
                                                     month: calendar.component(.month, from: today),
@@ -99,6 +117,7 @@ struct TodayView: View {
                 distractionIndicatorView
                 summaryCardsView
                 productivityCardView
+                heatmapSection
                 Spacer()
             }
             .padding(.bottom, horizontalSizeClass == .regular ? 40 : 100)
@@ -311,6 +330,18 @@ extension TodayView {
         )
         .walkthroughAnchor(.productivityCard)
         .padding(.horizontal)
+    }
+    
+    @ViewBuilder
+    private var heatmapSection: some View {
+        HeatmapGridView(
+            dailyStats: historicalStats,
+            endDate: Date()
+        )
+        .padding(.horizontal)
+        .onAppear {
+            fetchHistoricalStats()
+        }
     }
 }
 

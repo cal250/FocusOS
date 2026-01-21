@@ -164,6 +164,35 @@ class SupabaseManager: ObservableObject {
         }
     }
     
+    func fetchStatsRange(startDate: Date, endDate: Date) async throws -> [DailyStat] {
+        guard let userId = currentUser?.id else {
+            print("SupabaseManager: No user for fetchStatsRange")
+            return []
+        }
+        
+        let startString = formatDate(startDate)
+        let endString = formatDate(endDate)
+        print("SupabaseManager: Fetching stats from \(startString) to \(endString)...")
+        
+        do {
+            let stats: [DailyStat] = try await client
+                .from("daily_stats")
+                .select()
+                .eq("user_id", value: userId)
+                .gte("date", value: startString)
+                .lte("date", value: endString)
+                .order("date", ascending: true)
+                .execute()
+                .value
+            
+            print("SupabaseManager: Range fetch successful, found \(stats.count) records")
+            return stats
+        } catch {
+            print("SupabaseManager: RANGE FETCH ERROR: \(error.localizedDescription)")
+            throw error
+        }
+    }
+    
     func upsertDailyStat(_ stat: DailyStat) async throws {
         print("SupabaseManager: Upserting stats for \(stat.date)...")
         do {
