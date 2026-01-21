@@ -18,6 +18,7 @@ class SessionViewModel: ObservableObject {
     
     init() {
         requestNotificationPermissions()
+        NotificationManager.shared.checkAuthorizationStatus()
         loadInitialData()
         
         // Reload data when user changes
@@ -51,27 +52,15 @@ class SessionViewModel: ObservableObject {
     }
     
     func requestNotificationPermissions() {
-        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { granted, error in
-            if let error = error {
-                print("Error requesting notification permissions: \(error)")
-            }
-        }
+        NotificationManager.shared.requestAuthorization()
     }
     
     func scheduleNotification(duration: TimeInterval) {
-        let content = UNMutableNotificationContent()
-        content.title = "Session Complete"
-        content.body = "Congratulations! You reached your goal."
-        content.sound = .default
-        
-        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: duration, repeats: false)
-        let request = UNNotificationRequest(identifier: "sessionComplete", content: content, trigger: trigger)
-        
-        UNUserNotificationCenter.current().add(request)
+        NotificationManager.shared.scheduleSessionEndNotification(timeRemaining: duration)
     }
     
     func cancelNotifications() {
-        UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
+        NotificationManager.shared.cancelAllNotifications()
     }
     
     func startSession(tag: String? = nil, duration: TimeInterval? = nil) {
@@ -83,6 +72,8 @@ class SessionViewModel: ObservableObject {
         
         if let duration = duration {
             scheduleNotification(duration: duration)
+        } else {
+            print("SessionViewModel: Open-ended session started, no notification scheduled.")
         }
         
         HapticManager.shared.playImpact(style: .medium)
