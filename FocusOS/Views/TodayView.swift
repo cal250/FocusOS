@@ -136,7 +136,7 @@ struct TodayView: View {
         .onChange(of: viewModel.pastSessions.count) {
             fetchStats()
         }
-        .navigationBarHidden(true)
+        .navigationBarHidden(horizontalSizeClass != .regular)
     }
 }
 
