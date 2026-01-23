@@ -1,32 +1,50 @@
 import SwiftUI
+import Supabase
 
 struct iPadSidebarView: View {
     @Binding var selectedTab: Tab
     @Environment(\.horizontalSizeClass) var horizontalSizeClass
+    @StateObject private var supabaseManager = SupabaseManager.shared
+    @EnvironmentObject var sessionViewModel: SessionViewModel
+    
+    // Stats for the footer
+    @State private var todaysStats: DailyStat?
     
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            // App Logo/Name
-            VStack(alignment: .leading, spacing: 8) {
-                Image("g8 (5)")
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 48, height: 48)
-                    .cornerRadius(8)
-                
-                Text("FocusOS")
-                    .font(.system(size: 24, weight: .bold, design: .rounded))
-                    .foregroundColor(.primary)
-                
-                Text("Mindful Productivity")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-            }
-            .padding(.horizontal, 24)
-            .padding(.top, 32)
-            .padding(.bottom, 40)
             
-            // Navigation Sections
+            // 1. User Profile Profile (Top)
+            UserProfileSidebarHeader(user: supabaseManager.currentUser)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 24)
+            
+            // 2. Quick Actions
+            VStack(spacing: 8) {
+                QuickActionButton(
+                    title: "Start Focus",
+                    icon: "play.fill",
+                    color: .blue
+                ) {
+                    selectedTab = .focus
+                }
+                
+                QuickActionButton(
+                    title: "New Habit",
+                    icon: "plus",
+                    color: .green
+                ) {
+                    selectedTab = .habits
+                    // Note: Ideally triggers sheet, but tab switch is safe first step
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.bottom, 24)
+            
+            Divider()
+                .padding(.horizontal, 16)
+                .padding(.bottom, 24)
+            
+            // 3. Navigation
             VStack(spacing: 8) {
                 ForEach(Tab.allCases, id: \.self) { tab in
                     SidebarNavigationItem(
@@ -35,7 +53,6 @@ struct iPadSidebarView: View {
                         action: {
                             withAnimation(.easeInOut(duration: 0.2)) {
                                 selectedTab = tab
-                                // Haptic feedback (respects user settings)
                                 HapticManager.shared.playImpact(style: .light)
                             }
                         }
@@ -46,20 +63,160 @@ struct iPadSidebarView: View {
             
             Spacer()
             
-            // Footer (optional: version, settings link, etc.)
-            VStack(spacing: 4) {
-                Divider()
+            // 4. Daily Stats Summary (Bottom)
+            if let stats = todaysStats {
+                DailyStatsSidebarFooter(stats: stats)
                     .padding(.horizontal, 16)
-                    .padding(.bottom, 8)
-                
-                Text("v1.2 • iPad Edition")
-                    .font(.caption2)
-                    .foregroundColor(.secondary)
-                    .padding(.bottom, 16)
+                    .padding(.bottom, 24)
+            } else {
+                 // Fallback or Loading
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Daily Focus")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                    Text("Ready to start?")
+                         .font(.caption)
+                         .foregroundColor(.primary)
+                }
+                .padding(.horizontal, 16)
+                .padding(.bottom, 24)
             }
         }
         .frame(width: 280)
         .grassySurface(cornerRadius: 0, material: .ultraThinMaterial)
+        .onAppear {
+            fetchStats()
+        }
+        // Refresh when session ends
+        .onChange(of: sessionViewModel.pastSessions.count) {
+             fetchStats()
+        }
+    }
+    
+    func fetchStats() {
+        Task {
+            do {
+                if let stats = try await SupabaseManager.shared.fetchDailyStats(for: Date()) {
+                    await MainActor.run {
+                        self.todaysStats = stats
+                    }
+                }
+            } catch {
+                print("Sidebar: Failed to fetch stats")
+            }
+        }
+    }
+}
+
+// MARK: - Components
+
+struct UserProfileSidebarHeader: View {
+    let user: User?
+    
+    var body: some View {
+        HStack(spacing: 12) {
+            // Avatar Placeholder
+            Circle()
+                .fill(LinearGradient(colors: [.blue, .purple], startPoint: .topLeading, endPoint: .bottomTrailing))
+                .frame(width: 48, height: 48)
+                .overlay(
+                    Text(initials)
+                        .font(.headline)
+                        .foregroundColor(.white)
+                )
+                .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
+            
+            VStack(alignment: .leading, spacing: 2) {
+                Text(user?.email ?? "Guest")
+                    .font(.subheadline)
+                    .fontWeight(.semibold)
+                    .foregroundColor(.primary)
+                    .lineLimit(1)
+                
+                Text("FocusOS Pro") // Placeholder for tier
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+            }
+            Spacer()
+        }
+    }
+    
+    var initials: String {
+        guard let email = user?.email else { return "G" }
+        return String(email.prefix(2)).uppercased()
+    }
+}
+
+struct QuickActionButton: View {
+    let title: String
+    let icon: String
+    let color: Color
+    let action: () -> Void
+    
+    var body: some View {
+        Button(action: action) {
+            HStack {
+                Image(systemName: icon)
+                    .font(.system(size: 14, weight: .bold))
+                Text(title)
+                    .font(.system(size: 14, weight: .semibold))
+            }
+            .foregroundColor(.white)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 10)
+            .background(color)
+            .cornerRadius(10)
+            .shadow(color: color.opacity(0.3), radius: 4, x: 0, y: 2)
+        }
+        .buttonStyle(PlainButtonStyle())
+    }
+}
+
+struct DailyStatsSidebarFooter: View {
+    let stats: DailyStat
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Daily Progress")
+                .font(.caption)
+                .foregroundColor(.secondary)
+                .textCase(.uppercase)
+            
+            HStack {
+                VStack(alignment: .leading) {
+                    Text(formatTime(stats.totalFocusTime))
+                        .font(.headline)
+                    Text("\(stats.sessionCount) sessions")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                }
+                Spacer()
+                
+                // Mini Ring
+                ZStack {
+                    Circle()
+                        .stroke(Color.gray.opacity(0.2), lineWidth: 4)
+                    Circle()
+                        .trim(from: 0, to: min(Double(stats.totalFocusTime) / 3600.0, 1.0)) // Assume 1 hour goal for visual
+                        .stroke(Color.blue, style: StrokeStyle(lineWidth: 4, lineCap: .round))
+                        .rotationEffect(.degrees(-90))
+                }
+                .frame(width: 32, height: 32)
+            }
+            .padding(12)
+            .background(Color.white.opacity(0.5)) // Semi-transparent card
+            .cornerRadius(12)
+        }
+    }
+    
+    func formatTime(_ seconds: Int) -> String {
+        let h = seconds / 3600
+        let m = (seconds % 3600) / 60
+        if h > 0 {
+            return "\(h)h \(m)m"
+        } else {
+            return "\(m)m"
+        }
     }
 }
 
@@ -72,22 +229,22 @@ struct SidebarNavigationItem: View {
     
     var body: some View {
         Button(action: action) {
-            HStack(spacing: 16) {
+            HStack(spacing: 12) {
                 Image(systemName: tab.iconName)
-                    .font(.system(size: 20, weight: isSelected ? .semibold : .regular))
+                    .font(.system(size: 18, weight: isSelected ? .semibold : .regular))
                     .foregroundColor(isSelected ? .blue : .primary)
-                    .frame(width: 28)
+                    .frame(width: 24)
                 
                 Text(tab.rawValue)
-                    .font(.system(size: 16, weight: isSelected ? .semibold : .regular, design: .rounded))
+                    .font(.system(size: 15, weight: isSelected ? .semibold : .regular, design: .rounded))
                     .foregroundColor(isSelected ? .blue : .primary)
                 
                 Spacer()
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
-            .grassyGlow(isActive: isSelected, cornerRadius: 12)
-            .cornerRadius(12)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 10)
+            .background(isSelected ? Color.blue.opacity(0.1) : Color.clear)
+            .cornerRadius(10)
         }
         .buttonStyle(PlainButtonStyle())
         .walkthroughAnchor(anchor(for: tab))
@@ -102,8 +259,6 @@ struct SidebarNavigationItem: View {
         }
     }
 }
-
-// MARK: - Preview
 
 struct iPadSidebarView_Previews: PreviewProvider {
     static var previews: some View {
