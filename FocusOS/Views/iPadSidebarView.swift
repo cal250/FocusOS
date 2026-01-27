@@ -10,13 +10,30 @@ struct iPadSidebarView: View {
     // Stats for the footer
     @State private var todaysStats: DailyStat?
     
+    // Sheet State
+    @State private var showingAccountSheet = false
+    
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             
             // 1. User Profile Profile (Top)
-            UserProfileSidebarHeader(user: supabaseManager.currentUser)
-                .padding(.horizontal, 16)
-                .padding(.vertical, 24)
+            Button(action: {
+                showingAccountSheet = true
+            }) {
+                UserProfileSidebarHeader(user: supabaseManager.currentUser)
+                    .contentShape(Rectangle()) // Make entire area tappable
+            }
+            .buttonStyle(PlainButtonStyle())
+            .padding(.horizontal, 16)
+            .padding(.vertical, 24)
+            .sheet(isPresented: $showingAccountSheet) {
+                 NavigationView {
+                     AccountView()
+                         .navigationBarItems(trailing: Button("Done") {
+                             showingAccountSheet = false
+                         })
+                 }
+            }
             
             // 2. Quick Actions
             VStack(spacing: 8) {
@@ -34,7 +51,6 @@ struct iPadSidebarView: View {
                     color: .green
                 ) {
                     selectedTab = .habits
-                    // Note: Ideally triggers sheet, but tab switch is safe first step
                 }
             }
             .padding(.horizontal, 16)
@@ -63,7 +79,34 @@ struct iPadSidebarView: View {
             
             Spacer()
             
-            // 4. Daily Stats Summary (Bottom)
+            // 4. Logout Button (New)
+            Button(action: {
+                Task {
+                    try? await SupabaseManager.shared.signOut()
+                }
+            }) {
+                HStack(spacing: 12) {
+                    Image(systemName: "rectangle.portrait.and.arrow.right")
+                        .font(.system(size: 18))
+                        .foregroundColor(.red.opacity(0.8))
+                        .frame(width: 24)
+                    
+                    Text("Sign Out")
+                        .font(.system(size: 15, weight: .medium, design: .rounded))
+                        .foregroundColor(.red.opacity(0.8))
+                    
+                    Spacer()
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 10)
+                .background(Color.red.opacity(0.1))
+                .cornerRadius(10)
+            }
+            .buttonStyle(PlainButtonStyle())
+            .padding(.horizontal, 16)
+            .padding(.bottom, 16)
+            
+            // 5. Daily Stats Summary (Bottom)
             if let stats = todaysStats {
                 DailyStatsSidebarFooter(stats: stats)
                     .padding(.horizontal, 16)

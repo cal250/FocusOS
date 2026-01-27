@@ -16,6 +16,9 @@ struct AuthView: View {
     @State private var errorMessage = ""
     @State private var showError = false
     @State private var showingTerms = false
+    @State private var isNameInvalid = false
+    @State private var isEmailInvalid = false
+    @State private var isPasswordInvalid = false
     @State private var contentHeight: CGFloat = 0
     
     var body: some View {
@@ -150,7 +153,8 @@ struct AuthView: View {
                     icon: "person",
                     placeholder: "Enter Full Name",
                     text: $fullName,
-                    label: "Full Name"
+                    label: "Full Name",
+                    isError: isNameInvalid
                 )
             }
             
@@ -158,7 +162,8 @@ struct AuthView: View {
                 icon: "envelope",
                 placeholder: "Enter Email Address",
                 text: $email,
-                label: "Email Address"
+                label: "Email Address",
+                isError: isEmailInvalid
             )
             .textInputAutocapitalization(.never)
             .keyboardType(.emailAddress)
@@ -168,7 +173,8 @@ struct AuthView: View {
                 placeholder: "Enter Password",
                 text: $password,
                 label: "Password",
-                isSecure: true
+                isSecure: true,
+                isError: isPasswordInvalid
             )
             
             if isSignUp {
@@ -230,10 +236,43 @@ struct AuthView: View {
         Button(action: {
             Task {
                 isLoading = true
+                // Reset validation
+                isNameInvalid = false
+                isEmailInvalid = false
+                isPasswordInvalid = false
+                
                 // Sanitize inputs
                 let cleanEmail = email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
                 let cleanPassword = password.trimmingCharacters(in: .whitespacesAndNewlines)
                 let cleanFullName = fullName.trimmingCharacters(in: .whitespacesAndNewlines)
+                
+                // VALIDATION LOGIC
+                var hasError = false
+                
+                if cleanEmail.isEmpty || !cleanEmail.contains("@") || !cleanEmail.contains(".") {
+                    isEmailInvalid = true
+                    errorMessage = "Please enter a valid email address."
+                    hasError = true
+                }
+                
+                if cleanPassword.count < 6 {
+                    isPasswordInvalid = true
+                    errorMessage = "Password must be at least 6 characters long."
+                    hasError = true
+                }
+                
+                if isSignUp && cleanFullName.isEmpty {
+                    isNameInvalid = true
+                    errorMessage = "Please enter your full name."
+                    hasError = true
+                }
+                
+                if hasError {
+                    // Only show alert if there is an error, but fields turn red regardless
+                    showError = true
+                    isLoading = false
+                    return
+                }
                 
                 do {
                     if isSignUp {
@@ -370,45 +409,57 @@ struct SizePreferenceKey: PreferenceKey {
 
 // MARK: - Custom TextField
 
+// MARK: - Custom TextField
+
+// MARK: - Custom TextField
+
 struct CustomTextField: View {
     let icon: String
     let placeholder: String
     @Binding var text: String
     let label: String
     var isSecure: Bool = false
+    var isError: Bool = false // New property for error state
+    
+    @State private var isPasswordVisible = false
     
     var body: some View {
         ZStack(alignment: .leading) {
             // Label on the border
             Text(label)
                 .font(.system(size: 12, weight: .regular, design: .rounded))
-                .foregroundColor(.black)
+                .foregroundColor(isError ? .red : .black) // Label turns red
                 .padding(.horizontal, 4)
                 .background(Color.white)
                 .offset(x: 20, y: -27)
                 .zIndex(1)
             
-            if isSecure {
-                SecureField(placeholder, text: $text)
-                    .font(.system(size: 15))
-                    .foregroundColor(.black)
-                    .padding(.horizontal, 20)
-                    .padding(.vertical, 16)
-                    .background(
-                        RoundedRectangle(cornerRadius: 20)
-                            .stroke(Color.gray.opacity(0.25), lineWidth: 1.2)
-                    )
-            } else {
-                TextField(placeholder, text: $text)
-                    .font(.system(size: 15))
-                    .foregroundColor(.black)
-                    .padding(.horizontal, 20)
-                    .padding(.vertical, 16)
-                    .background(
-                        RoundedRectangle(cornerRadius: 20)
-                            .stroke(Color.gray.opacity(0.25), lineWidth: 1.2)
-                    )
+            HStack {
+                if isSecure && !isPasswordVisible {
+                    SecureField(placeholder, text: $text)
+                        .font(.system(size: 15))
+                        .foregroundColor(.black)
+                } else {
+                    TextField(placeholder, text: $text)
+                        .font(.system(size: 15))
+                        .foregroundColor(.black)
+                }
+                
+                if isSecure {
+                    Button(action: {
+                        isPasswordVisible.toggle()
+                    }) {
+                        Image(systemName: isPasswordVisible ? "eye" : "eye.slash")
+                            .foregroundColor(.gray)
+                    }
+                }
             }
+            .padding(.horizontal, 20)
+            .padding(.vertical, 16)
+            .background(
+                RoundedRectangle(cornerRadius: 20)
+                    .stroke(isError ? Color.red : Color.gray.opacity(0.25), lineWidth: 1.2) // Border turns red
+            )
         }
         .padding(.top, 10)
     }
