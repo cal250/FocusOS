@@ -7,17 +7,18 @@ enum WalkthroughStep: Int, CaseIterable, Codable {
     case focusTimeCard = 1
     case sessionsCard = 2
     case productivityCard = 3
+    case focusHistory = 4 // NEW STEP
     
     // Navigation (TabBar)
-    case navToday = 4
-    case navHabits = 5
-    case navFocus = 6
-    case navSettings = 7
+    case navToday = 5
+    case navHabits = 6
+    case navFocus = 7
+    case navSettings = 8
     
     // Feature Highlights (Navigate to them)
-    case startFocus = 8
-    case habitsSection = 9
-    case accountIcon = 10
+    case startFocus = 9
+    case habitsSection = 10
+    case accountIcon = 11
     
     case completed = 99
     
@@ -27,6 +28,7 @@ enum WalkthroughStep: Int, CaseIterable, Codable {
         case .focusTimeCard: return "Focus Time"
         case .sessionsCard: return "Total Sessions"
         case .productivityCard: return "Productivity Score"
+        case .focusHistory: return "Focus History"
         
         case .navToday: return "Today Tab"
         case .navHabits: return "Habits Tab"
@@ -46,6 +48,7 @@ enum WalkthroughStep: Int, CaseIterable, Codable {
         case .focusTimeCard: return "See how many minutes you've focused today."
         case .sessionsCard: return "Count your completed sessions. Tap to see history."
         case .productivityCard: return "Measure your focus quality and efficiency."
+        case .focusHistory: return "Visualise your daily focus streaks and habits over time."
             
         case .navToday: return "Return to your daily overview anytime."
         case .navHabits: return "Manage habits and view distraction logs."
@@ -61,7 +64,7 @@ enum WalkthroughStep: Int, CaseIterable, Codable {
     
     var requiredTab: Tab? {
         switch self {
-        case .calendar, .focusTimeCard, .sessionsCard, .productivityCard, .navToday, .accountIcon: 
+        case .calendar, .focusTimeCard, .sessionsCard, .productivityCard, .focusHistory, .navToday, .accountIcon: 
             return .today
         case .navHabits, .habitsSection: 
             return .habits

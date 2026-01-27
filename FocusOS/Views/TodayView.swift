@@ -7,6 +7,7 @@ struct TodayView: View {
     @EnvironmentObject var viewModel: SessionViewModel
     @StateObject private var supabaseManager = SupabaseManager.shared
     @Environment(\.horizontalSizeClass) var horizontalSizeClass
+    @ObservedObject private var walkthroughManager = WalkthroughManager.shared
     
     // Real Data Logic
     private var calendar: Calendar { Calendar.current }
@@ -110,33 +111,45 @@ struct TodayView: View {
     }
     
     private var todayContent: some View {
-        ScrollView {
-            VStack(spacing: 25) {
-                headerView
-                calendarView
-                distractionIndicatorView
-                summaryCardsView
-                productivityCardView
-                heatmapSection
-                Spacer()
+        ScrollViewReader { proxy in
+            ScrollView {
+                VStack(spacing: 25) {
+                    headerView
+                        .id(WalkthroughStep.calendar) // Approximation
+                    calendarView
+                        .id(WalkthroughStep.calendar)
+                    distractionIndicatorView
+                    summaryCardsView
+                        .id(WalkthroughStep.focusTimeCard) // Shared by sessions
+                    productivityCardView
+                        .id(WalkthroughStep.productivityCard)
+                    heatmapSection
+                        .id(WalkthroughStep.focusHistory)
+                    Spacer()
+                }
+                .padding(.bottom, horizontalSizeClass == .regular ? 40 : 100)
+                .padding(.horizontal, horizontalSizeClass == .regular ? 32 : 0)
             }
-            .padding(.bottom, horizontalSizeClass == .regular ? 40 : 100)
-            .padding(.horizontal, horizontalSizeClass == .regular ? 32 : 0)
+            .background(Color(UIColor.systemBackground))
+            .onAppear {
+                fetchStats()
+            }
+            .onChange(of: selectedDay) {
+                fetchStats()
+            }
+            .onChange(of: supabaseManager.currentUser) {
+                fetchStats()
+            }
+            .onChange(of: viewModel.pastSessions.count) {
+                fetchStats()
+            }
+            .navigationBarHidden(horizontalSizeClass != .regular)
+            .onChange(of: walkthroughManager.currentStep) { _, step in
+                withAnimation {
+                    proxy.scrollTo(step, anchor: .center)
+                }
+            }
         }
-        .background(Color(UIColor.systemBackground))
-        .onAppear {
-            fetchStats()
-        }
-        .onChange(of: selectedDay) {
-            fetchStats()
-        }
-        .onChange(of: supabaseManager.currentUser) {
-            fetchStats()
-        }
-        .onChange(of: viewModel.pastSessions.count) {
-            fetchStats()
-        }
-        .navigationBarHidden(horizontalSizeClass != .regular)
     }
 }
 
@@ -339,6 +352,7 @@ extension TodayView {
             endDate: Date()
         )
         .padding(.horizontal)
+        .walkthroughAnchor(.focusHistory)
         .onAppear {
             fetchHistoricalStats()
         }

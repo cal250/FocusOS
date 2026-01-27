@@ -135,6 +135,15 @@ struct WalkthroughOverlay: View {
                             return min(max(targetX, minX), maxX)
                         }()
                         
+                        // Calculate vertical position with clamping
+                        let textY: CGFloat = {
+                            let proposedY = isTopHalf ? frame.maxY + 120 : frame.minY - 120
+                            let padding: CGFloat = 80
+                            let minY = padding
+                            let maxY = geometry.size.height - padding
+                            return min(max(proposedY, minY), maxY)
+                        }()
+                        
                         VStack(spacing: 16) {
                             Text(manager.currentStep.title)
                                 .font(.title3)
@@ -177,7 +186,7 @@ struct WalkthroughOverlay: View {
                         .frame(maxWidth: 320)
                         .position(
                             x: textX,
-                            y: isTopHalf ? frame.maxY + 120 : frame.minY - 120
+                            y: textY
                         )
                     }
                 }
