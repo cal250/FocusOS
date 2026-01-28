@@ -13,6 +13,9 @@ struct HeatmapGridView: View {
     @State private var selectedStat: DailyStat?
     @State private var selectedDate: Date?
     
+    // Drag Gesture State
+    @GestureState private var isDragging = false
+    
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Focus History")
@@ -28,6 +31,67 @@ struct HeatmapGridView: View {
                 let startDate = calendar.date(byAdding: .day, value: -daysToDisplay, to: endDate) ?? endDate
                 
                 ZStack(alignment: .top) {
+                    // background for hit testing
+                    Color.clear
+                        .contentShape(Rectangle())
+                        .gesture(
+                            DragGesture(minimumDistance: 0)
+                                .updating($isDragging) { _, state, _ in
+                                    state = true
+                                }
+                                .onChanged { value in
+                                    let location = value.location
+                                    let gridHeight = CGFloat(rows) * (cellSize + spacing)
+                                    let gridWidth = CGFloat(columns) * (cellSize + spacing)
+                                    
+                                    // Map location to indices
+                                    if location.x >= 0 && location.x < gridWidth && location.y >= 0 && location.y < gridHeight {
+                                        let col = Int(location.x / (cellSize + spacing))
+                                        let row = Int(location.y / (cellSize + spacing))
+                                        
+                                        // Calculate date from row/col
+                                        // The grid fills column by column? No, LazyHGrid fills rows first then columns?
+                                        // Actually LazyHGrid with 'rows' fixed: fills Top-to-Bottom, Left-to-Right.
+                                        // Index = col * rows + row
+                                        
+                                        let index = col * rows + row
+                                        if index < daysToDisplay {
+                                            // The grid renders from left to right (past -> future).
+                                            // So the 0th index is the oldest date.
+                                            // daysToDisplay - 1 is the endDate (bottom right).
+                                            // Actually, implementation below renders:
+                                            // ForEach(0..<daysToDisplay) ... date = endDate - daysToDisplay + 1 + offset
+                                            // So 0 is passing to ForEach.
+                                            
+                                            // BUT LazyHGrid default flow:
+                                            // Column 0: Row 0, Row 1, ... Row 6
+                                            // Column 1: Row 0 ...
+                                            
+                                            if let date = calendar.date(byAdding: .day, value: -((daysToDisplay - 1) - index), to: endDate) {
+                                                if selectedDate != date {
+                                                    selectedDate = date
+                                                    let startOfDay = calendar.startOfDay(for: date)
+                                                    selectedStat = dailyStats.first(where: {
+                                                        if let statDate = dateFormatter.date(from: $0.date) {
+                                                            return calendar.isDate(statDate, inSameDayAs: startOfDay)
+                                                        }
+                                                        return false
+                                                    })
+                                                    // Haptic feedback on change
+                                                    HapticManager.shared.playSelection()
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                                .onEnded { _ in
+                                    withAnimation {
+                                        selectedDate = nil
+                                        selectedStat = nil
+                                    }
+                                }
+                        )
+                    
                     LazyHGrid(rows: Array(repeating: GridItem(.fixed(cellSize), spacing: spacing), count: rows), spacing: spacing) {
                         ForEach(0..<daysToDisplay, id: \.self) { offset in
                             if let date = calendar.date(byAdding: .day, value: -((daysToDisplay - 1) - offset), to: endDate) {
@@ -44,12 +108,17 @@ struct HeatmapGridView: View {
                         }
                     }
                     .frame(height: CGFloat(rows) * (cellSize + spacing))
+                    .allowsHitTesting(false) // Pass touches to ZStack gesture
                     
                     // Tooltip Overlay
-                    if let selected = selectedStat, let date = selectedDate {
-                        tooltipView(for: selected, date: date)
-                            .offset(y: -50) // Show above grid
-                            .transition(.opacity)
+                    if let date = selectedDate {
+                        // Fallback stat if none exists
+                        let stat = selectedStat ?? DailyStat(userId: UUID(), date: dateFormatter.string(from: date), totalFocusTime: 0, sessionCount: 0, avgProductivityScore: 0, distractionCount: 0)
+                        
+                        GrassyTooltip(stat: stat, date: date)
+                            .offset(y: -130) // Show above grid
+                            .transition(.opacity.combined(with: .scale(scale: 0.9)))
+                            .zIndex(100)
                     }
                 }
                 .position(x: geometry.size.width / 2, y: (CGFloat(rows) * (cellSize + spacing)) / 2)
@@ -67,52 +136,102 @@ struct HeatmapGridView: View {
     
     func heatmapCell(for date: Date, stat: DailyStat?) -> some View {
         let intensity = calculateIntensity(for: stat)
+        let isSelected = selectedDate == date
         
         return RoundedRectangle(cornerRadius: 2)
             .fill(color(for: intensity))
             .frame(width: cellSize, height: cellSize)
             .overlay(
                 RoundedRectangle(cornerRadius: 2)
-                    .stroke(Color.black.opacity(0.1), lineWidth: 0.5)
+                    .stroke(isSelected ? Color.blue : Color.black.opacity(0.1), lineWidth: isSelected ? 2 : 0.5)
             )
-            .onTapGesture {
-                withAnimation {
-                    if selectedDate == date {
-                        selectedDate = nil
-                        selectedStat = nil
-                    } else {
-                        selectedDate = date
-                        selectedStat = stat ?? DailyStat(userId: UUID(), date: dateFormatter.string(from: date), totalFocusTime: 0, sessionCount: 0, avgProductivityScore: 0, distractionCount: 0)
+            .scaleEffect(isSelected ? 1.5 : 1.0)
+            .animation(.spring(), value: isSelected)
+    }
+    
+    struct GrassyTooltip: View {
+        let stat: DailyStat
+        let date: Date
+        
+        var body: some View {
+            VStack(spacing: 12) {
+                // Header
+                HStack {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(date.formatted(.dateTime.weekday(.wide)))
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        Text(date.formatted(.dateTime.month().day()))
+                            .font(.headline)
+                            .foregroundColor(.primary)
+                    }
+                    Spacer()
+                }
+                
+                Divider()
+                
+                // Main Stat
+                HStack {
+                    Image(systemName: "timer")
+                        .foregroundColor(.blue)
+                    Text(formatTime(stat.totalFocusTime))
+                        .font(.title3)
+                        .fontWeight(.bold)
+                }
+                
+                // Grid details
+                HStack(spacing: 20) {
+                    VStack {
+                        Text("\(stat.sessionCount)")
+                            .font(.headline)
+                        Text("Sessions")
+                            .font(.caption2)
+                            .foregroundColor(.secondary)
+                    }
+                    
+                    Divider().frame(height: 20)
+                    
+                    VStack {
+                        Text("\(Int(stat.avgProductivityScore))%")
+                            .font(.headline)
+                        Text("Score")
+                            .font(.caption2)
+                            .foregroundColor(.secondary)
+                    }
+                    
+                    Divider().frame(height: 20)
+                    
+                    VStack {
+                        Text("\(stat.distractionCount)")
+                            .font(.headline)
+                        Text("Distractions")
+                            .font(.caption2)
+                            .foregroundColor(.secondary)
                     }
                 }
             }
-    }
-    
-    func tooltipView(for stat: DailyStat, date: Date) -> some View {
-        VStack(spacing: 4) {
-            Text(date, style: .date)
-                .font(.caption2)
-                .fontWeight(.bold)
-                .foregroundColor(.white)
-            
-            if stat.sessionCount > 0 {
-                Text("\(stat.sessionCount) sessions")
-                    .font(.caption2)
-                    .foregroundColor(.white)
-                Text("Score: \(Int(stat.avgProductivityScore))%")
-                    .font(.caption2)
-                    .foregroundColor(color(for: calculateIntensity(for: stat)))
-            } else {
-                Text("No activity")
-                    .font(.caption2)
-                    .foregroundColor(.white.opacity(0.8))
-            }
+            .padding()
+            .frame(width: 250)
+            .background(.ultraThinMaterial)
+            .background(
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(Color.green.opacity(0.1)) // Grassy tint
+            )
+            .cornerRadius(16)
+            .shadow(color: Color.black.opacity(0.15), radius: 20, x: 0, y: 10)
+            .overlay(
+                RoundedRectangle(cornerRadius: 16)
+                    .stroke(Color.white.opacity(0.5), lineWidth: 1)
+            )
         }
-        .padding(8)
-        .background(Color.black.opacity(0.8))
-        .cornerRadius(8)
-        .shadow(radius: 4)
-        .zIndex(1)
+        
+        func formatTime(_ seconds: Int) -> String {
+            if seconds == 0 { return "0m" }
+            let h = seconds / 3600
+            let m = (seconds % 3600) / 60
+            if h > 0 { return "\(h)h \(m)m" }
+            return "\(m)m"
+        }
     }
     
     var legendView: some View {
