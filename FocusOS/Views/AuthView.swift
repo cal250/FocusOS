@@ -30,6 +30,13 @@ struct AuthView: View {
                 .ignoresSafeArea()
             
             if UIDevice.current.userInterfaceIdiom == .pad {
+                // Simple transparent glassy overlay
+                Rectangle()
+                    .fill(.ultraThinMaterial)
+                    .ignoresSafeArea()
+            }
+            
+            if UIDevice.current.userInterfaceIdiom == .pad {
                 GeometryReader { geometry in
                     ZStack {
                         ScrollView(showsIndicators: false) {
